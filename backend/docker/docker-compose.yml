@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Local PostgreSQL (fallback when not using Supabase)
+  postgres:
+    image: postgres:16-alpine
+    container_name: mh-postgres
+    environment:
+      POSTGRES_DB: marketplace_hub
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (Rate Limiting, Caching)
+  redis:
+    image: redis:7-alpine
+    container_name: mh-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # LocalStack (SQS emulation)
+  localstack:
+    image: localstack/localstack:3
+    container_name: mh-localstack
+    environment:
+      SERVICES: sqs
+      DEFAULT_REGION: ap-northeast-2
+      DOCKER_HOST: unix:///var/run/docker.sock
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./localstack-init:/etc/localstack/init/ready.d
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+  localstack_data:

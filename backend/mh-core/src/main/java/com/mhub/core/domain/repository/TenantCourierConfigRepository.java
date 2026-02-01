@@ -1,0 +1,15 @@
+package com.mhub.core.domain.repository;
+
+import com.mhub.core.domain.entity.TenantCourierConfig;
+import com.mhub.core.domain.enums.CourierType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface TenantCourierConfigRepository extends JpaRepository<TenantCourierConfig, UUID> {
+    List<TenantCourierConfig> findByTenantIdAndActiveTrue(UUID tenantId);
+    Optional<TenantCourierConfig> findByTenantIdAndCourierType(UUID tenantId, CourierType courierType);
+}

@@ -1,0 +1,46 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/marketplace_hub
+    username: postgres
+    password: postgres
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://your-project.supabase.co/auth/v1
+          jwk-set-uri: https://your-project.supabase.co/auth/v1/.well-known/jwks.json
+
+mhub:
+  encryption:
+    key: local-dev-encryption-key-32char!
+  cors:
+    allowed-origins: http://localhost:3000
+
+cloud:
+  aws:
+    sqs:
+      endpoint: http://localhost:4566
+    credentials:
+      access-key: test
+      secret-key: test
+
+logging:
+  level:
+    root: INFO
+    com.mhub: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

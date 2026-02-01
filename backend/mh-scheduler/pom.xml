@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.mhub</groupId>
+        <artifactId>marketplace-hub</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>mh-scheduler</artifactId>
+    <name>MH Scheduler</name>
+    <description>Scheduled jobs and SQS workers</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.mhub</groupId>
+            <artifactId>mh-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mhub</groupId>
+            <artifactId>mh-marketplace</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mhub</groupId>
+            <artifactId>mh-erp</artifactId>
+        </dependency>
+
+        <!-- ShedLock -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-jdbc-template</artifactId>
+        </dependency>
+
+        <!-- AWS SQS -->
+        <dependency>
+            <groupId>io.awspring.cloud</groupId>
+            <artifactId>spring-cloud-aws-starter-sqs</artifactId>
+        </dependency>
+    </dependencies>
+</project>
