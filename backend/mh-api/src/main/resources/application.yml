@@ -9,9 +9,9 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:local}
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/marketplace_hub}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: ${DB_URL:jdbc:postgresql://aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?prepareThreshold=0}
+    username: ${DB_USERNAME:postgres.nnwcuhamxjqgmyzptbyb}
+    password: ${DB_PASSWORD:Qortlqdjr1!}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -38,6 +38,9 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    url: ${FLYWAY_DB_URL:jdbc:postgresql://aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres?prepareThreshold=0}
+    user: ${DB_USERNAME:postgres.nnwcuhamxjqgmyzptbyb}
+    password: ${DB_PASSWORD:Qortlqdjr1!}
 
   data:
     redis:
@@ -45,33 +48,30 @@ spring:
       port: ${REDIS_PORT:6379}
       timeout: 3000
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${SUPABASE_URL:https://your-project.supabase.co}/auth/v1
-          jwk-set-uri: ${SUPABASE_URL:https://your-project.supabase.co}/auth/v1/.well-known/jwks.json
-
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
-# Encryption
+# Encryption & Supabase
 mhub:
   encryption:
-    key: ${ENCRYPTION_KEY:change-me-in-production-32-chars!}
+    key: ${ENCRYPTION_KEY:bG9jYWwtZGV2LWVuY3J5cHRpb24ta2V5LTMyY2hhciE=}
+  supabase:
+    url: ${SUPABASE_URL:https://nnwcuhamxjqgmyzptbyb.supabase.co}
+    jwt-secret: ${SUPABASE_JWT_SECRET:4kKRsBdu//RkAbzadWF5ULX+qWTPX0UaXbOCZE7qivjtQ10CMlR9Vm+Y+aWRZCu063M4exLP8W9YED5BT4Zp3Q==}
+    service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ud2N1aGFteGpxZ215enB0YnliIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTk1ODMxMSwiZXhwIjoyMDg1NTM0MzExfQ.7I42NWYIBHzKSz0tnny7l0o8qlNM_3Q-0iRtx-o1GpY}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 # SQS
-cloud:
-  aws:
-    region:
-      static: ${AWS_REGION:ap-northeast-2}
-    sqs:
-      endpoint: ${SQS_ENDPOINT:}
-    credentials:
-      access-key: ${AWS_ACCESS_KEY_ID:test}
-      secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+# cloud:
+#   aws:
+#     region:
+#       static: ${AWS_REGION:ap-northeast-2}
+#     sqs:
+#       endpoint: ${SQS_ENDPOINT:}
+#     credentials:
+#       access-key: ${AWS_ACCESS_KEY_ID:test}
+#       secret-key: ${AWS_SECRET_ACCESS_KEY:test}
 
 # Scheduler
 shedlock:

@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.Collections;
 import java.util.List;
 
 @Getter
@@ -27,6 +28,17 @@ public class PageResponse<T> {
                 .totalElements(totalElements)
                 .totalPages(totalPages)
                 .hasNext(page < totalPages - 1)
+                .build();
+    }
+
+    public static <T> PageResponse<T> empty() {
+        return PageResponse.<T>builder()
+                .content(Collections.emptyList())
+                .page(0)
+                .size(0)
+                .totalElements(0)
+                .totalPages(0)
+                .hasNext(false)
                 .build();
     }
 }

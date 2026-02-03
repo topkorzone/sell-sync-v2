@@ -3,6 +3,7 @@ package com.mhub.scheduler.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -10,6 +11,7 @@ import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import java.net.URI;
 
 @Configuration
+@Profile("!local")
 public class SqsConfig {
     @Value("${mhub.aws.sqs.endpoint:}") private String sqsEndpoint;
     @Value("${mhub.aws.region:ap-northeast-2}") private String awsRegion;

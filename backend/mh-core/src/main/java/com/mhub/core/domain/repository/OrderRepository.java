@@ -21,4 +21,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Optional<Order> findByTenantIdAndMarketplaceTypeAndMarketplaceOrderIdAndMarketplaceProductOrderId(UUID tenantId, MarketplaceType marketplaceType, String marketplaceOrderId, String marketplaceProductOrderId);
     @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId AND o.erpSynced = false")
     long countUnsynced(@Param("tenantId") UUID tenantId);
+
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id")
+    Optional<Order> findByIdWithItems(@Param("id") UUID id);
 }

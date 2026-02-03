@@ -29,6 +29,9 @@ public class TenantErpConfig extends BaseEntity {
     @Column(name = "company_code")
     private String companyCode;
 
+    @Column(name = "user_id")
+    private String userId;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean active = true;

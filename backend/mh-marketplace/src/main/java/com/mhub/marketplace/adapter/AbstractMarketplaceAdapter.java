@@ -1,5 +1,6 @@
 package com.mhub.marketplace.adapter;
 
+import com.mhub.core.domain.entity.TenantMarketplaceCredential;
 import com.mhub.core.domain.enums.OrderStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -19,5 +20,10 @@ public abstract class AbstractMarketplaceAdapter implements MarketplaceAdapter {
         OrderStatus status = getStatusMapping().get(marketplaceStatus);
         if (status == null) { log.warn("Unknown {} status: {}", getMarketplaceType(), marketplaceStatus); return OrderStatus.COLLECTED; }
         return status;
+    }
+
+    @Override
+    public boolean testConnection(TenantMarketplaceCredential credential) {
+        throw new UnsupportedOperationException("testConnection not implemented for " + getMarketplaceType());
     }
 }

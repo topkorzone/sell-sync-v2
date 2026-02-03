@@ -9,6 +9,9 @@ public final class ErrorCodes {
     public static final String AUTH_INVALID_TOKEN = "AUTH_001";
     public static final String AUTH_EXPIRED_TOKEN = "AUTH_002";
     public static final String AUTH_INSUFFICIENT_PERMISSION = "AUTH_003";
+    public static final String AUTH_INVALID_CREDENTIALS = "AUTH_004";
+    public static final String AUTH_REFRESH_FAILED = "AUTH_005";
+    public static final String AUTH_TENANT_MISSING = "AUTH_006";
 
     // Tenant
     public static final String TENANT_NOT_FOUND = "TENANT_001";
@@ -23,6 +26,9 @@ public final class ErrorCodes {
     public static final String MARKETPLACE_API_ERROR = "MKT_001";
     public static final String MARKETPLACE_AUTH_FAILED = "MKT_002";
     public static final String MARKETPLACE_RATE_LIMITED = "MKT_003";
+    public static final String MARKETPLACE_CREDENTIAL_NOT_FOUND = "MKT_004";
+    public static final String MARKETPLACE_CREDENTIAL_DUPLICATE = "MKT_005";
+    public static final String MARKETPLACE_CONNECTION_FAILED = "MKT_006";
 
     // Shipping
     public static final String SHIPPING_NO_TRACKING_NUMBER = "SHIP_001";
@@ -33,6 +39,11 @@ public final class ErrorCodes {
     public static final String ERP_SYNC_FAILED = "ERP_001";
     public static final String ERP_API_ERROR = "ERP_002";
     public static final String ERP_DOCUMENT_CREATE_FAILED = "ERP_003";
+    public static final String ERP_CONFIG_NOT_FOUND = "ERP_004";
+    public static final String ERP_CONFIG_DUPLICATE = "ERP_005";
+    public static final String ERP_CONNECTION_FAILED = "ERP_006";
+    public static final String ERP_ITEM_SYNC_FAILED = "ERP_007";
+    public static final String ERP_ITEM_NOT_FOUND = "ERP_008";
 
     // General
     public static final String INTERNAL_ERROR = "SYS_001";

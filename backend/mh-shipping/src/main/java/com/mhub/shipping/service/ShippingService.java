@@ -29,7 +29,8 @@ public class ShippingService {
     @Transactional
     public Shipment createShipment(UUID orderId, CourierType courierType) {
         UUID tenantId = TenantContext.requireTenantId();
-        Order order = orderService.getOrder(orderId);
+        Order order = orderRepository.findByIdWithItems(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCodes.ORDER_NOT_FOUND, "Order not found: " + orderId));
         TrackingNumberPool tn = trackingNumberPoolRepository.findFirstAvailable(tenantId, courierType.name()).orElseThrow(() -> new BusinessException(ErrorCodes.SHIPPING_NO_TRACKING_NUMBER, "No tracking number for: " + courierType));
         tn.setUsed(true); tn.setUsedByOrderId(orderId); trackingNumberPoolRepository.save(tn);
         TenantCourierConfig config = courierConfigRepository.findByTenantIdAndCourierType(tenantId, courierType).orElseThrow(() -> new BusinessException(ErrorCodes.SHIPPING_COURIER_API_ERROR, "No config for: " + courierType));

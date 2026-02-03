@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface TenantErpConfigRepository extends JpaRepository<TenantErpConfig, UUID> {
     Optional<TenantErpConfig> findByTenantIdAndErpType(UUID tenantId, ErpType erpType);
     List<TenantErpConfig> findByTenantIdAndActiveTrue(UUID tenantId);
+    Optional<TenantErpConfig> findByIdAndTenantId(UUID id, UUID tenantId);
 }

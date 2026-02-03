@@ -1,0 +1,27 @@
+package com.mhub.core.erp.dto;
+
+import com.mhub.core.domain.enums.ErpType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.UUID;
+
+@Getter
+@AllArgsConstructor
+@Builder
+public class ErpConfigResponse {
+
+    private UUID id;
+    private ErpType erpType;
+    private String companyCode;
+    private String userId;
+    private Boolean active;
+    private boolean hasApiKey;
+    private Map<String, Object> fieldMapping;
+    private Map<String, Object> extraConfig;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}

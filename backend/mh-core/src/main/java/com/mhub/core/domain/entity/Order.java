@@ -5,6 +5,7 @@ import com.mhub.core.domain.enums.OrderStatus;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
@@ -75,11 +76,15 @@ public class Order extends BaseEntity {
     @Builder.Default
     private Boolean erpSynced = false;
 
+    @Column(name = "expected_settlement_amount", precision = 15, scale = 2)
+    private BigDecimal expectedSettlementAmount;
+
     @Type(JsonType.class)
     @Column(name = "raw_data", columnDefinition = "jsonb")
     private Map<String, Object> rawData;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 100)
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
 

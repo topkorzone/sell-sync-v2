@@ -38,4 +38,10 @@ public class OrderItem extends BaseEntity {
 
     @Column(name = "marketplace_sku")
     private String marketplaceSku;
+
+    @Column(name = "erp_item_id")
+    private UUID erpItemId;
+
+    @Column(name = "erp_prod_cd", length = 100)
+    private String erpProdCd;
 }

@@ -12,5 +12,6 @@ import java.util.UUID;
 public interface TenantMarketplaceCredentialRepository extends JpaRepository<TenantMarketplaceCredential, UUID> {
     List<TenantMarketplaceCredential> findByTenantIdAndActiveTrue(UUID tenantId);
     Optional<TenantMarketplaceCredential> findByTenantIdAndMarketplaceType(UUID tenantId, MarketplaceType marketplaceType);
+    Optional<TenantMarketplaceCredential> findByTenantIdAndMarketplaceTypeAndActiveTrue(UUID tenantId, MarketplaceType marketplaceType);
     List<TenantMarketplaceCredential> findByMarketplaceTypeAndActiveTrue(MarketplaceType marketplaceType);
 }

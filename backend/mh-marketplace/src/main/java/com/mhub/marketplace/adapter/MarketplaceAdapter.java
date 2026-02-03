@@ -12,4 +12,5 @@ public interface MarketplaceAdapter {
     List<Order> getChangedOrders(TenantMarketplaceCredential credential, LocalDateTime since);
     void confirmShipment(TenantMarketplaceCredential credential, String marketplaceOrderId, String trackingNumber, String courierCode);
     void refreshToken(TenantMarketplaceCredential credential);
+    boolean testConnection(TenantMarketplaceCredential credential);
 }
