@@ -20,8 +20,19 @@ public class OrderItemResponse {
     private String marketplaceSku;
     private UUID erpItemId;
     private String erpProdCd;
+    private Boolean hasMasterMapping;
 
     public static OrderItemResponse from(OrderItem item) {
+        return from(item, null, null);
+    }
+
+    public static OrderItemResponse from(OrderItem item, Boolean hasMasterMapping, String masterErpProdCd) {
+        // 우선순위: 1) 주문 아이템 자체 매핑 2) 마스터 매핑
+        String effectiveErpProdCd = item.getErpProdCd();
+        if ((effectiveErpProdCd == null || effectiveErpProdCd.isEmpty()) && masterErpProdCd != null) {
+            effectiveErpProdCd = masterErpProdCd;
+        }
+
         return OrderItemResponse.builder()
                 .id(item.getId())
                 .productName(item.getProductName())
@@ -32,7 +43,8 @@ public class OrderItemResponse {
                 .marketplaceProductId(item.getMarketplaceProductId())
                 .marketplaceSku(item.getMarketplaceSku())
                 .erpItemId(item.getErpItemId())
-                .erpProdCd(item.getErpProdCd())
+                .erpProdCd(effectiveErpProdCd)
+                .hasMasterMapping(hasMasterMapping != null ? hasMasterMapping : (item.getErpProdCd() != null && !item.getErpProdCd().isEmpty()))
                 .build();
     }
 }

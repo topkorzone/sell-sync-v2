@@ -45,6 +45,10 @@ public final class ErrorCodes {
     public static final String ERP_ITEM_SYNC_FAILED = "ERP_007";
     public static final String ERP_ITEM_NOT_FOUND = "ERP_008";
 
+    // Product Mapping
+    public static final String PRODUCT_MAPPING_NOT_FOUND = "PM_001";
+    public static final String PRODUCT_MAPPING_INVALID_REQUEST = "PM_002";
+
     // General
     public static final String INTERNAL_ERROR = "SYS_001";
     public static final String VALIDATION_ERROR = "SYS_002";

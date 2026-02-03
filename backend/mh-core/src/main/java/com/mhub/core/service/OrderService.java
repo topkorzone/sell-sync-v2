@@ -4,6 +4,7 @@ import com.mhub.core.domain.entity.ErpItem;
 import com.mhub.core.domain.entity.Order;
 import com.mhub.core.domain.entity.OrderItem;
 import com.mhub.core.domain.entity.OrderStatusLog;
+import com.mhub.core.domain.entity.ProductMapping;
 import com.mhub.core.domain.enums.MarketplaceType;
 import com.mhub.core.domain.enums.OrderStatus;
 import com.mhub.core.domain.event.OrderStatusChangedEvent;
@@ -11,6 +12,7 @@ import com.mhub.core.domain.repository.ErpItemRepository;
 import com.mhub.core.domain.repository.OrderItemRepository;
 import com.mhub.core.domain.repository.OrderRepository;
 import com.mhub.core.domain.repository.OrderStatusLogRepository;
+import com.mhub.core.domain.repository.ProductMappingRepository;
 import com.mhub.core.service.dto.OrderItemMappingRequest;
 import com.mhub.core.service.dto.OrderItemResponse;
 import com.mhub.core.service.dto.OrderResponse;
@@ -24,6 +26,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j @Service @RequiredArgsConstructor
@@ -32,6 +37,8 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final OrderStatusLogRepository orderStatusLogRepository;
     private final ErpItemRepository erpItemRepository;
+    private final ProductMappingRepository productMappingRepository;
+    private final ProductMappingService productMappingService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
@@ -47,7 +54,37 @@ public class OrderService {
         } else {
             orders = orderRepository.findByTenantId(tenantId, pageable);
         }
-        return orders.map(order -> OrderResponse.from(order, true));
+
+        // 각 마켓플레이스별 매핑 정보를 조회하여 캐시
+        Map<MarketplaceType, Map<String, ProductMapping>> mappingCache = new HashMap<>();
+
+        return orders.map(order -> {
+            Map<String, ProductMapping> mappingMap = mappingCache.computeIfAbsent(
+                    order.getMarketplaceType(),
+                    mt -> buildMappingMap(tenantId, mt)
+            );
+            return OrderResponse.from(order, true, mappingMap);
+        });
+    }
+
+    /**
+     * 마켓플레이스별 매핑 정보를 Map으로 변환
+     */
+    private Map<String, ProductMapping> buildMappingMap(UUID tenantId, MarketplaceType marketplaceType) {
+        List<ProductMapping> mappings = productMappingRepository.findByTenantIdAndMarketplaceType(tenantId, marketplaceType);
+        Map<String, ProductMapping> map = new HashMap<>();
+        for (ProductMapping pm : mappings) {
+            String key = buildMappingKey(pm.getMarketplaceProductId(), pm.getMarketplaceSku());
+            map.put(key, pm);
+        }
+        return map;
+    }
+
+    private String buildMappingKey(String productId, String sku) {
+        if (sku == null || sku.isEmpty()) {
+            return productId + ":";
+        }
+        return productId + ":" + sku;
     }
 
     @Transactional(readOnly = true)
@@ -110,6 +147,9 @@ public class OrderService {
         orderItemRepository.save(item);
         log.info("Order item {} mapped to ERP item: erpItemId={}, erpProdCd={}",
                 itemId, item.getErpItemId(), item.getErpProdCd());
+
+        // 마스터 테이블에도 매핑 저장
+        productMappingService.saveToMasterFromOrderItem(tenantId, order.getMarketplaceType(), item);
 
         return OrderItemResponse.from(item);
     }

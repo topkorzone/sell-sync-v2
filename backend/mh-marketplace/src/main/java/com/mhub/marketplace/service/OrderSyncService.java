@@ -5,6 +5,7 @@ import com.mhub.core.domain.entity.TenantMarketplaceCredential;
 import com.mhub.core.domain.enums.MarketplaceType;
 import com.mhub.core.domain.event.OrderCollectedEvent;
 import com.mhub.core.domain.repository.OrderRepository;
+import com.mhub.core.service.ProductMappingService;
 import com.mhub.core.service.RateLimitService;
 import com.mhub.marketplace.adapter.MarketplaceAdapter;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class OrderSyncService {
     private final MarketplaceAdapterFactory adapterFactory;
     private final OrderRepository orderRepository;
     private final RateLimitService rateLimitService;
+    private final ProductMappingService productMappingService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -33,8 +35,21 @@ public class OrderSyncService {
         int newCount = 0;
         for (Order order : orders) {
             order.setTenantId(tenantId);
+            // OrderItem에도 tenantId 설정
+            if (order.getItems() != null) {
+                order.getItems().forEach(item -> item.setTenantId(tenantId));
+            }
             boolean exists = orderRepository.findByTenantIdAndMarketplaceTypeAndMarketplaceOrderIdAndMarketplaceProductOrderId(tenantId, mkt, order.getMarketplaceOrderId(), order.getMarketplaceProductOrderId()).isPresent();
-            if (!exists) { orderRepository.save(order); newCount++; eventPublisher.publishEvent(new OrderCollectedEvent(order.getId(), tenantId, mkt, order.getMarketplaceOrderId())); }
+            if (!exists) {
+                // 자동 매핑 적용
+                int mappedCount = productMappingService.applyAutoMapping(order, tenantId, mkt);
+                if (mappedCount > 0) {
+                    log.debug("Auto-mapped {} items for order: {}", mappedCount, order.getMarketplaceOrderId());
+                }
+                orderRepository.save(order);
+                newCount++;
+                eventPublisher.publishEvent(new OrderCollectedEvent(order.getId(), tenantId, mkt, order.getMarketplaceOrderId()));
+            }
         }
         log.info("Synced {} new orders for tenant={} mkt={}", newCount, tenantId, mkt);
         return newCount;

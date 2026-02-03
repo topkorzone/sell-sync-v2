@@ -1,6 +1,7 @@
 package com.mhub.core.service.dto;
 
 import com.mhub.core.domain.entity.Order;
+import com.mhub.core.domain.entity.ProductMapping;
 import com.mhub.core.domain.enums.MarketplaceType;
 import com.mhub.core.domain.enums.OrderStatus;
 import lombok.Builder;
@@ -9,6 +10,7 @@ import lombok.Getter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Getter
@@ -37,6 +39,14 @@ public class OrderResponse {
     private List<OrderItemResponse> items;
 
     public static OrderResponse from(Order order, boolean includeItems) {
+        return from(order, includeItems, null);
+    }
+
+    /**
+     * 매핑 정보를 포함하여 OrderResponse 생성
+     * @param mappingMap productId:sku -> ProductMapping 맵
+     */
+    public static OrderResponse from(Order order, boolean includeItems, Map<String, ProductMapping> mappingMap) {
         OrderResponseBuilder builder = OrderResponse.builder()
                 .id(order.getId())
                 .tenantId(order.getTenantId())
@@ -61,10 +71,31 @@ public class OrderResponse {
 
         if (includeItems && order.getItems() != null) {
             builder.items(order.getItems().stream()
-                    .map(OrderItemResponse::from)
+                    .map(item -> {
+                        if (mappingMap != null) {
+                            String key = buildMappingKey(item.getMarketplaceProductId(), item.getMarketplaceSku());
+                            ProductMapping mapping = mappingMap.get(key);
+                            // SKU 매핑이 없으면 상품 레벨 매핑 확인
+                            if (mapping == null) {
+                                String productLevelKey = buildMappingKey(item.getMarketplaceProductId(), null);
+                                mapping = mappingMap.get(productLevelKey);
+                            }
+                            if (mapping != null) {
+                                return OrderItemResponse.from(item, true, mapping.getErpProdCd());
+                            }
+                        }
+                        return OrderItemResponse.from(item);
+                    })
                     .toList());
         }
 
         return builder.build();
+    }
+
+    private static String buildMappingKey(String productId, String sku) {
+        if (sku == null || sku.isEmpty()) {
+            return productId + ":";
+        }
+        return productId + ":" + sku;
     }
 }
