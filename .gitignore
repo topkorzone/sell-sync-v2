@@ -1,6 +1,8 @@
 # === Backend (Java/Gradle) ===
 backend/build/
 backend/**/build/
+backend/.gradle/
+.gradle/
 !backend/gradle/wrapper/gradle-wrapper.jar
 *.class
 *.jar
