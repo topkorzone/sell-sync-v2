@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -26,18 +27,59 @@ public class OrderSyncWorker {
     @SqsListener(value = "${mhub.aws.sqs.order-sync-queue:order-sync-queue}", maxConcurrentMessages = "20")
     public void processOrderSync(String messageBody) {
         OrderSyncMessage msg;
-        try { msg = objectMapper.readValue(messageBody, OrderSyncMessage.class); } catch (Exception e) { log.error("Failed to parse: {}", messageBody, e); return; }
+        try {
+            msg = objectMapper.readValue(messageBody, OrderSyncMessage.class);
+        } catch (Exception e) {
+            log.error("Failed to parse: {}", messageBody, e);
+            return;
+        }
+
         UUID tenantId = UUID.fromString(msg.tenantId());
         UUID credentialId = UUID.fromString(msg.credentialId());
-        JobExecutionLog jobLog = JobExecutionLog.builder().jobName("ORDER_SYNC").tenantId(tenantId).startedAt(LocalDateTime.now()).status("RUNNING").build();
+        SyncType syncType = msg.syncType() != null ? msg.syncType() : SyncType.NEW_ORDERS;
+
+        String jobName = syncType == SyncType.NEW_ORDERS ? "NEW_ORDER_COLLECTION" : "STATUS_UPDATE";
+        JobExecutionLog jobLog = JobExecutionLog.builder()
+                .jobName(jobName)
+                .tenantId(tenantId)
+                .startedAt(LocalDateTime.now())
+                .status("RUNNING")
+                .build();
+
         try {
             TenantContext.setTenantId(tenantId);
-            TenantMarketplaceCredential cred = credentialRepository.findById(credentialId).orElseThrow(() -> new IllegalStateException("Credential not found: " + credentialId));
-            LocalDateTime to = LocalDateTime.now(); LocalDateTime from = to.minusDays(7);
-            int count = orderSyncService.syncOrders(cred, from, to);
-            jobLog.setStatus("SUCCESS"); jobLog.setRecordsProcessed(count);
-            log.info("Sync completed: tenant={} mkt={} count={}", tenantId, msg.marketplaceType(), count);
-        } catch (Exception e) { log.error("Sync failed: tenant={} mkt={}", tenantId, msg.marketplaceType(), e); jobLog.setStatus("FAILED"); jobLog.setErrorMessage(e.getMessage() != null ? e.getMessage().substring(0, Math.min(e.getMessage().length(), 2000)) : "Unknown"); }
-        finally { jobLog.setFinishedAt(LocalDateTime.now()); jobLogRepository.save(jobLog); TenantContext.clear(); }
+            TenantMarketplaceCredential cred = credentialRepository.findById(credentialId)
+                    .orElseThrow(() -> new IllegalStateException("Credential not found: " + credentialId));
+
+            int count;
+            if (syncType == SyncType.NEW_ORDERS) {
+                // 신규 주문 수집: 당일 주문만
+                LocalDateTime from = LocalDate.now().atStartOfDay();
+                LocalDateTime to = LocalDateTime.now();
+                count = orderSyncService.syncOrders(cred, from, to);
+                log.info("New order collection completed: tenant={} mkt={} count={}",
+                        tenantId, msg.marketplaceType(), count);
+            } else {
+                // 상태 업데이트: 미완료 주문 상태 조회
+                count = orderSyncService.updateOrderStatuses(cred);
+                log.info("Status update completed: tenant={} mkt={} updatedCount={}",
+                        tenantId, msg.marketplaceType(), count);
+            }
+
+            jobLog.setStatus("SUCCESS");
+            jobLog.setRecordsProcessed(count);
+
+        } catch (Exception e) {
+            log.error("{} failed: tenant={} mkt={}", jobName, tenantId, msg.marketplaceType(), e);
+            jobLog.setStatus("FAILED");
+            String errorMsg = e.getMessage();
+            jobLog.setErrorMessage(errorMsg != null
+                    ? errorMsg.substring(0, Math.min(errorMsg.length(), 2000))
+                    : "Unknown error");
+        } finally {
+            jobLog.setFinishedAt(LocalDateTime.now());
+            jobLogRepository.save(jobLog);
+            TenantContext.clear();
+        }
     }
 }

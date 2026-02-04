@@ -121,6 +121,8 @@ public class ProductMappingService {
 
     /**
      * 주문의 모든 항목에 자동 매핑 적용
+     * - ERP 매핑 적용
+     * - 쿠팡 상품은 수수료율 조회 및 정산예정금 계산
      * @return 매핑이 적용된 항목 수
      */
     @Transactional
@@ -134,38 +136,56 @@ public class ProductMappingService {
 
         List<ProductMapping> mappingsToUpdate = new ArrayList<>();
         int mappedCount = 0;
+        int commissionCount = 0;
 
         for (OrderItem item : order.getItems()) {
-            // 이미 매핑된 항목은 스킵
-            if (StringUtils.hasText(item.getErpProdCd())) {
+            boolean needsMapping = !StringUtils.hasText(item.getErpProdCd());
+            boolean needsCommission = marketplaceType == MarketplaceType.COUPANG && item.getCommissionRate() == null;
+
+            // 이미 매핑되고 수수료도 계산된 항목은 스킵
+            if (!needsMapping && !needsCommission) {
                 continue;
             }
 
-            Optional<ProductMapping> mapping = findMapping(
-                    tenantId,
-                    marketplaceType,
-                    item.getMarketplaceProductId(),
-                    item.getMarketplaceSku()
-            );
+            // 매핑 적용
+            if (needsMapping) {
+                Optional<ProductMapping> mapping = findMapping(
+                        tenantId,
+                        marketplaceType,
+                        item.getMarketplaceProductId(),
+                        item.getMarketplaceSku()
+                );
 
-            // 매핑이 존재하고 erp_prod_cd가 설정된 경우에만 적용
-            if (mapping.isPresent() && StringUtils.hasText(mapping.get().getErpProdCd())) {
-                ProductMapping pm = mapping.get();
-                item.setErpItemId(pm.getErpItemId());
-                item.setErpProdCd(pm.getErpProdCd());
-                pm.recordUsage();
-                mappingsToUpdate.add(pm);
-                mappedCount++;
-                log.debug("Auto-mapped order item: productId={}, sku={} -> erpProdCd={}",
-                        item.getMarketplaceProductId(), item.getMarketplaceSku(), pm.getErpProdCd());
+                // 매핑이 존재하고 erp_prod_cd가 설정된 경우에만 적용
+                if (mapping.isPresent() && StringUtils.hasText(mapping.get().getErpProdCd())) {
+                    ProductMapping pm = mapping.get();
+                    item.setErpItemId(pm.getErpItemId());
+                    item.setErpProdCd(pm.getErpProdCd());
+                    pm.recordUsage();
+                    mappingsToUpdate.add(pm);
+                    mappedCount++;
+                    log.debug("Auto-mapped order item: productId={}, sku={} -> erpProdCd={}",
+                            item.getMarketplaceProductId(), item.getMarketplaceSku(), pm.getErpProdCd());
+                }
+            }
+
+            // 쿠팡 상품 수수료 계산 (매핑된 항목만)
+            if (needsCommission && StringUtils.hasText(item.getErpProdCd())) {
+                calculateAndApplyCommission(item, tenantId);
+                if (item.getCommissionRate() != null) {
+                    commissionCount++;
+                }
             }
         }
 
         // 배치로 매핑 사용 횟수 업데이트
         if (!mappingsToUpdate.isEmpty()) {
             productMappingRepository.saveAll(mappingsToUpdate);
-            log.info("Auto-mapped {} items for order: marketplaceOrderId={}",
-                    mappedCount, order.getMarketplaceOrderId());
+        }
+
+        if (mappedCount > 0 || commissionCount > 0) {
+            log.info("Auto-mapped {} items, calculated commission for {} items for order: marketplaceOrderId={}",
+                    mappedCount, commissionCount, order.getMarketplaceOrderId());
         }
 
         return mappedCount;

@@ -9,14 +9,27 @@
 @contentType = application/json
 
 # 로그인 후 받은 access_token을 여기에 설정
-@accessToken = eyJhbGciOiJFUzI1NiIsImtpZCI6IjVjY2NmZjNmLTM5ZTYtNDZjZS1hYWI5LTgwMjM1YjAzMGZkZSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL25ud2N1aGFteGpxZ215enB0YnliLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJkMTI2ZjM0Mi1hMzY5LTQ1ZjktYWZjZi0zMGUwYWEzNjExYTQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzcwMjA0MjQ4LCJpYXQiOjE3NzAyMDA2NDgsImVtYWlsIjoiYWRtaW5Ac2VsbC1zeW5jLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXSwicm9sZSI6ImFkbWluIiwidGVuYW50X2lkIjoiYWM0NWY4OWItN2ZlZS00ZDAyLWJkNWQtNmQzYTk4YjU4MjRkIn0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzcwMjAwNjQ4fV0sInNlc3Npb25faWQiOiIzZmY5YzYzYy02NGRlLTQ3YmMtYTgzOC1iYzQ1YmQwZmM4MGYiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.4vp2cBtommcrbqEPb065Qlz3RipFzAJXmEWwhIitnsTAn0e7B3M5wTfblo51G8HMq54r814ocytg-CEFhWU4yg
+@accessToken = eyJhbGciOiJFUzI1NiIsImtpZCI6IjVjY2NmZjNmLTM5ZTYtNDZjZS1hYWI5LTgwMjM1YjAzMGZkZSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL25ud2N1aGFteGpxZ215enB0YnliLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJkMTI2ZjM0Mi1hMzY5LTQ1ZjktYWZjZi0zMGUwYWEzNjExYTQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzcwMjE4NDYxLCJpYXQiOjE3NzAyMTQ4NjEsImVtYWlsIjoiYWRtaW5Ac2VsbC1zeW5jLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXSwicm9sZSI6ImFkbWluIiwidGVuYW50X2lkIjoiYWM0NWY4OWItN2ZlZS00ZDAyLWJkNWQtNmQzYTk4YjU4MjRkIn0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzcwMjE0ODYxfV0sInNlc3Npb25faWQiOiJlMjRiYjVhZC1iYjllLTRjOGEtYmY3MS1iZTVkNjc1Yjk1NDMiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.q0CRaLzpKlupgfM-FxgwhVGolV4t2-k7ehP-H3D2VIVY0Ed6dleHporVkuHZCNh9P7NR-octj5iWARkZcwd-KQ
 
 
 ### ============================================
-### 1. Auth - 인증
+### 1. Health Check
 ### ============================================
 
-### 1.1 로그인
+### 서버 상태 확인
+GET {{baseUrl}}/actuator/health
+
+###
+
+### API 상태 확인
+GET {{baseUrl}}/api/v1/health
+
+
+### ============================================
+### 2. Auth - 인증
+### ============================================
+
+### 로그인
 # @name login
 POST {{baseUrl}}/api/v1/auth/login
 Content-Type: {{contentType}}
@@ -26,74 +39,30 @@ Content-Type: {{contentType}}
   "password": "Password1!"
 }
 
-### 1.2 토큰 갱신
-POST {{baseUrl}}/api/v1/auth/refresh
-Content-Type: {{contentType}}
+###
 
-{
-  "refreshToken": "{{login.response.body.data.refreshToken}}"
-}
-
-### 1.3 현재 사용자 정보
+### 현재 사용자 정보
 GET {{baseUrl}}/api/v1/auth/me
 Authorization: Bearer {{accessToken}}
 
-### 1.4 로그아웃
+###
+
+### 로그아웃
 POST {{baseUrl}}/api/v1/auth/logout
 Authorization: Bearer {{accessToken}}
 
 
 ### ============================================
-### 2. Settings - 마켓플레이스 자격증명
+### 3. Settings - 마켓플레이스 자격증명
 ### ============================================
 
-### 2.1 마켓플레이스 자격증명 목록 조회
+### 마켓플레이스 자격증명 목록 조회
 GET {{baseUrl}}/api/v1/settings/marketplaces
 Authorization: Bearer {{accessToken}}
 
-### 2.2 네이버 스마트스토어 자격증명 생성
-# @name createNaverCredential
-POST {{baseUrl}}/api/v1/settings/marketplaces
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
+###
 
-{
-  "marketplaceType": "NAVER",
-  "sellerId": "your-seller-id",
-  "clientId": "your-client-id",
-  "clientSecret": "$2a$04$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-}
-
-### 2.3 쿠팡 자격증명 생성
-# @name createCoupangCredential
-POST {{baseUrl}}/api/v1/settings/marketplaces
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
-
-{
-  "marketplaceType": "COUPANG",
-  "sellerId": "A00123456",
-  "clientId": "your-access-key",
-  "clientSecret": "your-secret-key"
-}
-
-### 2.4 마켓플레이스 자격증명 단건 조회
-GET {{baseUrl}}/api/v1/settings/marketplaces/{{createNaverCredential.response.body.data.id}}
-Authorization: Bearer {{accessToken}}
-
-### 2.5 마켓플레이스 자격증명 수정
-PUT {{baseUrl}}/api/v1/settings/marketplaces/{{createNaverCredential.response.body.data.id}}
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
-
-{
-  "marketplaceType": "NAVER",
-  "sellerId": "updated-seller-id",
-  "clientId": "updated-client-id",
-  "clientSecret": "$2a$04$yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
-}
-
-### 2.6 네이버 연결 테스트 (입력값으로)
+### 네이버 스마트스토어 연결 테스트
 POST {{baseUrl}}/api/v1/settings/marketplaces/test-connection
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
@@ -105,7 +74,9 @@ Content-Type: {{contentType}}
   "clientSecret": "$2a$04$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 }
 
-### 2.7 쿠팡 연결 테스트 (입력값으로)
+###
+
+### 쿠팡 연결 테스트
 POST {{baseUrl}}/api/v1/settings/marketplaces/test-connection
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
@@ -117,105 +88,123 @@ Content-Type: {{contentType}}
   "clientSecret": "your-secret-key"
 }
 
-### 2.8 저장된 자격증명으로 연결 테스트
-POST {{baseUrl}}/api/v1/settings/marketplaces/{{createNaverCredential.response.body.data.id}}/test-connection
-Authorization: Bearer {{accessToken}}
+###
 
-### 2.9 마켓플레이스 자격증명 삭제
-DELETE {{baseUrl}}/api/v1/settings/marketplaces/{{createNaverCredential.response.body.data.id}}
+### 네이버 자격증명 저장
+POST {{baseUrl}}/api/v1/settings/marketplaces
 Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "marketplaceType": "NAVER",
+  "sellerId": "your-seller-id",
+  "clientId": "your-client-id",
+  "clientSecret": "$2a$04$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+
+###
+
+### 쿠팡 자격증명 저장
+POST {{baseUrl}}/api/v1/settings/marketplaces
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "marketplaceType": "COUPANG",
+  "sellerId": "A00123456",
+  "clientId": "your-access-key",
+  "clientSecret": "your-secret-key"
+}
 
 
 ### ============================================
-### 3. Orders - 주문 관리
+### 4. Order Sync - 주문 수집
 ### ============================================
 
-### 3.1 주문 목록 조회
-GET {{baseUrl}}/api/v1/orders?page=0&size=20
-Authorization: Bearer {{accessToken}}
-
-### 3.2 주문 목록 조회 (상태 필터)
-GET {{baseUrl}}/api/v1/orders?status=COLLECTED&page=0&size=20
-Authorization: Bearer {{accessToken}}
-
-### 3.3 주문 목록 조회 (마켓플레이스 필터)
-GET {{baseUrl}}/api/v1/orders?marketplace=NAVER&page=0&size=20
-Authorization: Bearer {{accessToken}}
-
-### 3.4 주문 목록 조회 (복합 필터)
-GET {{baseUrl}}/api/v1/orders?status=COLLECTED&marketplace=COUPANG&page=0&size=20
-Authorization: Bearer {{accessToken}}
-
-### 3.5 주문 상세 조회
-GET {{baseUrl}}/api/v1/orders/{{orderId}}
-Authorization: Bearer {{accessToken}}
-
-### 3.6 주문 발송 처리
-POST {{baseUrl}}/api/v1/orders/{{orderId}}/ship
-Authorization: Bearer {{accessToken}}
-
-
-### ============================================
-### 4. Order Sync - 주문 수집 (수동 동기화)
-### ============================================
-
-### 4.1 전체 마켓플레이스 주문 동기화 (최근 2시간)
+### 전체 마켓플레이스 주문 동기화 (최근 2시간)
 POST {{baseUrl}}/api/v1/orders/sync
 Authorization: Bearer {{accessToken}}
 
-### 4.2 전체 마켓플레이스 주문 동기화 (최근 24시간)
+###
+
+### 전체 마켓플레이스 주문 동기화 (최근 24시간)
 POST {{baseUrl}}/api/v1/orders/sync?hours=24
 Authorization: Bearer {{accessToken}}
 
-### 4.3 전체 마켓플레이스 주문 동기화 (특정 날짜)
-POST {{baseUrl}}/api/v1/orders/sync?date=2026-02-03
+###
+
+### 특정 날짜 주문 동기화
+POST {{baseUrl}}/api/v1/orders/sync?date=2026-02-04
 Authorization: Bearer {{accessToken}}
 
-### 4.4 네이버 스마트스토어 주문 동기화 (최근 2시간)
+###
+
+### 네이버 주문 동기화 (최근 2시간)
 POST {{baseUrl}}/api/v1/orders/sync/NAVER?hours=2
 Authorization: Bearer {{accessToken}}
 
-### 4.5 네이버 스마트스토어 주문 동기화 (특정 날짜)
-# 샘플 데이터: 2026-01-23
-POST {{baseUrl}}/api/v1/orders/sync/NAVER?date=2026-01-23
-Authorization: Bearer {{accessToken}}
+###
 
-### 4.6 쿠팡 주문 동기화 (최근 2시간)
+### 쿠팡 주문 동기화 (최근 2시간)
 POST {{baseUrl}}/api/v1/orders/sync/COUPANG?hours=2
 Authorization: Bearer {{accessToken}}
 
-### 4.7 쿠팡 주문 동기화 (특정 날짜)
-# 샘플 데이터: 2026-01-29
-POST {{baseUrl}}/api/v1/orders/sync/COUPANG?date=2026-01-29
+
+### ============================================
+### 5. Orders - 주문 조회
+### ============================================
+
+### 주문 목록 조회
+GET {{baseUrl}}/api/v1/orders?page=0&size=20
 Authorization: Bearer {{accessToken}}
 
-### 4.8 11번가 주문 동기화 (미구현)
-POST {{baseUrl}}/api/v1/orders/sync/ELEVEN_ST?hours=2
+###
+
+### 주문 목록 조회 (상태 필터)
+GET {{baseUrl}}/api/v1/orders?status=COLLECTED&page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 주문 목록 조회 (마켓플레이스 필터)
+GET {{baseUrl}}/api/v1/orders?marketplace=NAVER&page=0&size=20
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 주문 상세 조회
+# orderId를 실제 주문 ID로 변경하세요
+GET {{baseUrl}}/api/v1/orders/your-order-id-here
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 주문 출고 처리 (상태를 SHIPPING으로 변경)
+# orderId를 실제 주문 ID로 변경하세요
+POST {{baseUrl}}/api/v1/orders/your-order-id-here/ship
 Authorization: Bearer {{accessToken}}
 
 
 ### ============================================
-### 5. Settings - ERP 설정
+### 6. Dashboard - 대시보드
 ### ============================================
 
-### 5.1 ERP 설정 목록 조회
+### 대시보드 통계 조회
+GET {{baseUrl}}/api/v1/dashboard/stats
+Authorization: Bearer {{accessToken}}
+
+
+### ============================================
+### 7. ERP 설정 (선택)
+### ============================================
+
+### ERP 설정 목록 조회
 GET {{baseUrl}}/api/v1/settings/erp
 Authorization: Bearer {{accessToken}}
 
-### 5.2 이카운트 ERP 설정 생성
-# @name createErpConfig
-POST {{baseUrl}}/api/v1/settings/erp
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
+###
 
-{
-  "erpType": "ICOUNT",
-  "companyCode": "your-company-code",
-  "userId": "your-user-id",
-  "apiKey": "your-api-key"
-}
-
-### 5.3 ERP 연결 테스트
+### 이카운트 ERP 연결 테스트
 POST {{baseUrl}}/api/v1/settings/erp/test-connection
 Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
@@ -227,110 +216,23 @@ Content-Type: {{contentType}}
   "apiKey": "your-api-key"
 }
 
-### 5.4 ERP 설정 삭제
-DELETE {{baseUrl}}/api/v1/settings/erp/{{createErpConfig.response.body.data.id}}
-Authorization: Bearer {{accessToken}}
+###
 
-
-### ============================================
-### 6. Dashboard - 대시보드
-### ============================================
-
-### 6.1 대시보드 통계 조회
-GET {{baseUrl}}/api/v1/dashboard/stats
-Authorization: Bearer {{accessToken}}
-
-
-### ============================================
-### 7. Health Check
-### ============================================
-
-### 7.1 서버 상태 확인
-GET {{baseUrl}}/actuator/health
-
-### 7.2 API 상태 확인
-GET {{baseUrl}}/api/v1/health
-
-
-### ============================================
-### 8. ERP 품목 관리
-### ============================================
-
-### 8.1 ERP 품목 목록 조회
+### ERP 품목 목록 조회
 GET {{baseUrl}}/api/v1/erp/items?page=0&size=20
 Authorization: Bearer {{accessToken}}
 
-### 8.2 ERP 품목 검색 (키워드)
-GET {{baseUrl}}/api/v1/erp/items?keyword=상품&page=0&size=20
-Authorization: Bearer {{accessToken}}
+###
 
-### 8.3 ERP 품목 동기화 (ERP에서 품목 가져오기)
+### ERP 품목 동기화
 POST {{baseUrl}}/api/v1/erp/items/sync
 Authorization: Bearer {{accessToken}}
 
 
 ### ============================================
-### 9. 주문 항목 ERP 매핑
+### 8. 수수료 계산
 ### ============================================
 
-### 9.1 주문 상세 조회 (항목 포함)
-# orderId를 실제 주문 ID로 변경하세요
-@orderId = your-order-id-here
-
-GET {{baseUrl}}/api/v1/orders/{{orderId}}
-Authorization: Bearer {{accessToken}}
-
-### 9.2 주문 항목에 ERP 품목 매핑
-# orderId, itemId, erpItemId를 실제 값으로 변경하세요
-@itemId = your-item-id-here
-@erpItemId = your-erp-item-id-here
-
-POST {{baseUrl}}/api/v1/orders/{{orderId}}/items/{{itemId}}/mapping
-Authorization: Bearer {{accessToken}}
-Content-Type: {{contentType}}
-
-{
-  "erpItemId": "{{erpItemId}}",
-  "erpProdCd": "PROD-001"
-}
-
-### 9.3 주문 항목 ERP 매핑 해제
-DELETE {{baseUrl}}/api/v1/orders/{{orderId}}/items/{{itemId}}/mapping
-Authorization: Bearer {{accessToken}}
-
-
-### ============================================
-### 10. 주문 동기화 (7일 범위 테스트)
-### ============================================
-
-### 10.1 전체 마켓플레이스 7일간 주문 동기화
-# 스케줄러에서는 7일간 동기화하지만, 수동 API는 파라미터로 조절
-POST {{baseUrl}}/api/v1/orders/sync?hours=168
-Authorization: Bearer {{accessToken}}
-
-### 10.2 쿠팡 7일간 주문 동기화
-POST {{baseUrl}}/api/v1/orders/sync/COUPANG?hours=168
-Authorization: Bearer {{accessToken}}
-
-### 10.3 네이버 7일간 주문 동기화
-POST {{baseUrl}}/api/v1/orders/sync/NAVER?hours=168
-Authorization: Bearer {{accessToken}}
-
-### 10.4 쿠팡 카테고리 동기화
-POST {{baseUrl}}/api/coupang/categories/sync
-Authorization: Bearer {{accessToken}}
-
-
-### ============================================
-### 11. 수수료 계산
-### ============================================
-
-### 11.1 특정 주문의 수수료 계산
-# 상품 매핑된 주문에 대해 수수료율 조회 및 정산예정금액 계산
-POST {{baseUrl}}/api/v1/orders/{{orderId}}/commission
-Authorization: Bearer {{accessToken}}
-
-### 11.2 쿠팡 수수료 미계산 주문 일괄 계산
-# 상품 동기화(매핑) 후 호출하면 수수료 미계산 주문들의 정산예정금액 계산
+### 쿠팡 수수료 미계산 주문 일괄 계산
 POST {{baseUrl}}/api/v1/orders/commission/calculate?marketplace=COUPANG
 Authorization: Bearer {{accessToken}}

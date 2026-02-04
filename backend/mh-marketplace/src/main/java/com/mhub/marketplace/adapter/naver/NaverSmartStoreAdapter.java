@@ -11,6 +11,7 @@ import com.mhub.core.domain.entity.TenantMarketplaceCredential;
 import com.mhub.core.domain.enums.MarketplaceType;
 import com.mhub.core.domain.enums.OrderStatus;
 import com.mhub.marketplace.adapter.AbstractMarketplaceAdapter;
+import com.mhub.marketplace.adapter.dto.OrderStatusInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.http.MediaType;
@@ -29,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.Collections;
 
 @Slf4j
 @Component
@@ -244,6 +246,7 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
                     .totalPrice(itemTotalPrice)
                     .marketplaceProductId(productId)
                     .marketplaceSku(itemNo)
+                    .expectedSettlementAmount(expectedSettlementAmount)
                     .build();
 
             order.addItem(orderItem);
@@ -330,6 +333,71 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
         log.info("Getting changed Naver orders since {}", since);
         // 변경된 주문은 lastChangedFrom 파라미터로 조회
         return collectOrders(credential, since, LocalDateTime.now());
+    }
+
+    @Override
+    public List<OrderStatusInfo> getOrderStatuses(TenantMarketplaceCredential credential, List<String> productOrderIds) {
+        if (productOrderIds == null || productOrderIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        log.info("Querying Naver order statuses for {} orders", productOrderIds.size());
+        String accessToken = getAccessToken(credential);
+
+        try {
+            // POST /v1/pay-order/seller/product-orders/query
+            Map<String, Object> requestBody = Map.of("productOrderIds", productOrderIds);
+
+            String response = webClient.post()
+                    .uri("/v1/pay-order/seller/product-orders/query")
+                    .header("Authorization", "Bearer " + accessToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            return parseOrderStatusesResponse(response);
+
+        } catch (WebClientResponseException e) {
+            log.error("Naver order status query failed: {} {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                    "네이버 주문 상태 조회 실패: " + parseNaverErrorMessage(e.getResponseBodyAsString()));
+        } catch (Exception e) {
+            log.error("Error querying Naver order statuses", e);
+            throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                    "네이버 주문 상태 조회 실패: " + e.getMessage());
+        }
+    }
+
+    private List<OrderStatusInfo> parseOrderStatusesResponse(String response) {
+        List<OrderStatusInfo> results = new ArrayList<>();
+
+        try {
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode data = root.path("data");
+
+            if (data.isArray()) {
+                for (JsonNode item : data) {
+                    String productOrderId = item.path("productOrderId").asText(null);
+                    JsonNode productOrder = item.path("productOrder");
+                    String marketplaceStatus = productOrder.path("productOrderStatus").asText(null);
+
+                    if (productOrderId != null && marketplaceStatus != null) {
+                        OrderStatusInfo info = OrderStatusInfo.builder()
+                                .productOrderId(productOrderId)
+                                .marketplaceStatus(marketplaceStatus)
+                                .status(mapStatus(marketplaceStatus))
+                                .build();
+                        results.add(info);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to parse order statuses response: {}", e.getMessage());
+        }
+
+        return results;
     }
 
     @Override
