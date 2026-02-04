@@ -1,49 +1,38 @@
-'use client';
-
-import React from 'react';
-import { Layout, Dropdown, Space, Typography, Avatar } from 'antd';
-import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
-import { signOut } from '@/lib/auth';
-import type { MenuProps } from 'antd';
-
-const { Header: AntHeader } = Layout;
+import { useNavigate } from "react-router-dom";
+import { LogOut, User } from "lucide-react";
+import { signOut } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Header() {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await signOut();
-    router.push('/login');
+    navigate("/login");
   };
 
-  const items: MenuProps['items'] = [
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: '로그아웃',
-      onClick: handleLogout,
-    },
-  ];
-
   return (
-    <AntHeader
-      style={{
-        background: '#fff',
-        padding: '0 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        borderBottom: '1px solid #f0f0f0',
-        height: 64,
-      }}
-    >
-      <Dropdown menu={{ items }} placement="bottomRight">
-        <Space style={{ cursor: 'pointer' }}>
-          <Avatar size="small" icon={<UserOutlined />} />
-          <Typography.Text>관리자</Typography.Text>
-        </Space>
-      </Dropdown>
-    </AntHeader>
+    <header className="flex h-16 items-center justify-end border-b bg-background px-6">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="gap-2">
+            <User className="h-4 w-4" />
+            <span>관리자</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            로그아웃
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </header>
   );
 }

@@ -1,0 +1,459 @@
+import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
+import { RefreshCw, Search, Loader2 } from "lucide-react";
+import MappingDialog from "@/components/orders/MappingDialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import api from "@/lib/api";
+import type { Order, OrderItem, OrderItemRow, MarketplaceType, OrderStatus, PageResponse } from "@/types";
+
+const statusVariants: Record<OrderStatus, "default" | "secondary" | "destructive" | "outline"> = {
+  COLLECTED: "secondary",
+  CONFIRMED: "secondary",
+  READY_TO_SHIP: "outline",
+  SHIPPING: "default",
+  DELIVERED: "default",
+  CANCELLED: "destructive",
+  RETURNED: "destructive",
+  EXCHANGED: "outline",
+  PURCHASE_CONFIRMED: "default",
+};
+
+const statusLabels: Record<OrderStatus, string> = {
+  COLLECTED: "수집완료",
+  CONFIRMED: "확인",
+  READY_TO_SHIP: "발송준비",
+  SHIPPING: "배송중",
+  DELIVERED: "배송완료",
+  CANCELLED: "취소",
+  RETURNED: "반품",
+  EXCHANGED: "교환",
+  PURCHASE_CONFIRMED: "구매확정",
+};
+
+const marketplaceLabels: Record<MarketplaceType, string> = {
+  NAVER: "스마트스토어",
+  COUPANG: "쿠팡",
+  ELEVEN_ST: "11번가",
+  GMARKET: "G마켓",
+  AUCTION: "옥션",
+  WEMAKEPRICE: "위메프",
+  TMON: "티몬",
+};
+
+// 쿠팡 마켓플레이스 원본 상태 레이블
+const coupangStatusLabels: Record<string, string> = {
+  ACCEPT: "결제완료",
+  INSTRUCT: "상품준비중",
+  DEPARTURE: "배송지시",
+  DELIVERING: "배송중",
+  FINAL_DELIVERY: "배송완료",
+  NONE_TRACKING: "직접배송",
+  CANCEL: "취소",
+  RETURN: "반품",
+};
+
+// 네이버 마켓플레이스 원본 상태 레이블
+const naverStatusLabels: Record<string, string> = {
+  PAYMENT_WAITING: "결제대기",
+  PAYED: "결제완료",
+  DELIVERING: "배송중",
+  DELIVERED: "배송완료",
+  PURCHASE_DECIDED: "구매확정",
+  EXCHANGED: "교환",
+  CANCELLED: "취소",
+  RETURNED: "반품",
+};
+
+// 마켓플레이스별 원본 상태 레이블 가져오기
+function getMarketplaceStatusLabel(marketplaceType: MarketplaceType, marketplaceStatus?: string): string {
+  if (!marketplaceStatus) return "-";
+
+  switch (marketplaceType) {
+    case "COUPANG":
+      return coupangStatusLabels[marketplaceStatus] || marketplaceStatus;
+    case "NAVER":
+      return naverStatusLabels[marketplaceStatus] || marketplaceStatus;
+    default:
+      return marketplaceStatus;
+  }
+}
+
+// 날짜 포맷팅 (YYYY-MM-DD HH:mm)
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return "-";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+// 주문 목록을 플랫 행 목록으로 변환 (각 OrderItem을 별도 행으로)
+function flattenOrdersToRows(orders: Order[]): OrderItemRow[] {
+  const rows: OrderItemRow[] = [];
+  orders.forEach((order, orderIndex) => {
+    const items = order.items || [];
+    if (items.length === 0) {
+      // 상품이 없는 주문은 빈 상품으로 하나의 행 생성
+      rows.push({
+        rowKey: `${order.id}-empty`,
+        orderId: order.id,
+        isFirstItemOfOrder: true,
+        isLastItemOfOrder: true,
+        itemsInOrder: 0,
+        itemIndex: 0,
+        orderIndex,
+        order,
+        item: {
+          id: "",
+          orderId: order.id,
+          productName: "-",
+          optionName: "",
+          quantity: 0,
+          unitPrice: 0,
+          totalPrice: 0,
+          marketplaceProductId: "",
+          marketplaceItemId: "",
+        },
+      });
+    } else {
+      items.forEach((item, itemIndex) => {
+        rows.push({
+          rowKey: `${order.id}-${item.id}`,
+          orderId: order.id,
+          isFirstItemOfOrder: itemIndex === 0,
+          isLastItemOfOrder: itemIndex === items.length - 1,
+          itemsInOrder: items.length,
+          itemIndex,
+          orderIndex,
+          order,
+          item,
+        });
+      });
+    }
+  });
+  return rows;
+}
+
+export default function Orders() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [marketplaceFilter, setMarketplaceFilter] = useState<string>("");
+  const [search, setSearch] = useState("");
+  const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedMappingItem, setSelectedMappingItem] = useState<OrderItem | null>(null);
+
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, string | number> = { page, size: 20 };
+      if (statusFilter) params.status = statusFilter;
+      if (marketplaceFilter) params.marketplace = marketplaceFilter;
+      if (search) params.search = search;
+      const { data } = await api.get<{ data: PageResponse<Order> }>("/api/v1/orders", { params });
+      setOrders(data.data?.content ?? []);
+      setTotal(data.data?.totalElements ?? 0);
+    } catch {
+      toast.error("주문 목록을 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, statusFilter, marketplaceFilter, search]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await api.post("/api/v1/orders/sync");
+      toast.success("동기화 요청이 완료되었습니다.");
+      fetchOrders();
+    } catch {
+      toast.error("동기화 요청에 실패했습니다.");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const totalPages = Math.ceil(total / 20);
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-semibold tracking-tight">주문 관리</h2>
+        <Button onClick={handleSync} disabled={syncing}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+          주문 동기화
+        </Button>
+      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <Select
+              value={marketplaceFilter}
+              onValueChange={(v) => {
+                setMarketplaceFilter(v === "all" ? "" : v);
+                setPage(0);
+              }}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="마켓 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체 마켓</SelectItem>
+                {Object.entries(marketplaceLabels).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => {
+                setStatusFilter(v === "all" ? "" : v);
+                setPage(0);
+              }}
+            >
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="상태 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체 상태</SelectItem>
+                {Object.entries(statusLabels).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="주문번호 / 수취인 검색"
+                className="w-[240px] pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setPage(0);
+                    fetchOrders();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : orders.length === 0 ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              주문 데이터가 없습니다.
+            </p>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {/* 주문 레벨 컬럼 */}
+                    <TableHead className="w-[150px]">주문번호</TableHead>
+                    <TableHead className="w-[90px]">마켓</TableHead>
+                    {/* 상품 레벨 컬럼 */}
+                    <TableHead className="min-w-[180px]">상품명</TableHead>
+                    <TableHead className="w-[120px]">옵션</TableHead>
+                    <TableHead className="w-[50px] text-right">수량</TableHead>
+                    <TableHead className="w-[80px] text-right">단가</TableHead>
+                    <TableHead className="w-[90px] text-right">금액</TableHead>
+                    {/* 주문 레벨 컬럼 (계속) */}
+                    <TableHead className="w-[80px]">수취인</TableHead>
+                    <TableHead className="w-[80px]">상태</TableHead>
+                    <TableHead className="w-[70px] text-right">배송비</TableHead>
+                    <TableHead className="w-[90px] text-right">정산예정</TableHead>
+                    {/* 상품 레벨 컬럼 */}
+                    <TableHead className="w-[70px]">매핑</TableHead>
+                    {/* 주문 레벨 컬럼 */}
+                    <TableHead className="w-[90px]">주문일</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {flattenOrdersToRows(orders).map((row) => {
+                    const { order, item, isFirstItemOfOrder, itemsInOrder, orderIndex } = row;
+                    const isMapped = item.erpProdCd || item.hasMasterMapping;
+                    const rowClassName = `${
+                      isFirstItemOfOrder ? "order-row-first" : "order-row-continued"
+                    } ${orderIndex % 2 === 0 ? "order-group-even" : "order-group-odd"}`;
+
+                    return (
+                      <TableRow key={row.rowKey} className={rowClassName}>
+                        {/* 주문번호 - 첫 행만 표시 */}
+                        <TableCell className="truncate font-mono text-xs">
+                          {isFirstItemOfOrder ? (
+                            <div className="flex items-center gap-1">
+                              <span>{order.marketplaceOrderId}</span>
+                              {itemsInOrder > 1 && (
+                                <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                                  {itemsInOrder}건
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground pl-2">└</span>
+                          )}
+                        </TableCell>
+                        {/* 마켓 - 첫 행만 표시 */}
+                        <TableCell className="text-sm">
+                          {isFirstItemOfOrder
+                            ? marketplaceLabels[order.marketplaceType] || order.marketplaceType
+                            : ""}
+                        </TableCell>
+                        {/* 상품명 - 모든 행 표시 */}
+                        <TableCell>
+                          <span className="truncate block max-w-[180px] text-sm" title={item.productName}>
+                            {item.productName}
+                          </span>
+                        </TableCell>
+                        {/* 옵션 - 모든 행 표시 */}
+                        <TableCell className="text-sm text-muted-foreground truncate max-w-[120px]" title={item.optionName || ""}>
+                          {item.optionName || "-"}
+                        </TableCell>
+                        {/* 수량 - 모든 행 표시 */}
+                        <TableCell className="text-right text-sm">
+                          {item.quantity || "-"}
+                        </TableCell>
+                        {/* 단가 - 모든 행 표시 */}
+                        <TableCell className="text-right text-sm">
+                          {item.unitPrice ? `${item.unitPrice.toLocaleString()}` : "-"}
+                        </TableCell>
+                        {/* 금액 - 모든 행 표시 */}
+                        <TableCell className="text-right text-sm">
+                          {item.totalPrice ? `${item.totalPrice.toLocaleString()}` : "-"}
+                        </TableCell>
+                        {/* 수취인 - 첫 행만 표시 */}
+                        <TableCell className="text-sm">
+                          {isFirstItemOfOrder ? order.receiverName : ""}
+                        </TableCell>
+                        {/* 상태 - 첫 행만 표시 */}
+                        <TableCell>
+                          {isFirstItemOfOrder && (
+                            <Badge variant={statusVariants[order.status]} className="text-xs">
+                              {getMarketplaceStatusLabel(order.marketplaceType, order.marketplaceStatus)}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        {/* 배송비 - 첫 행만 표시 */}
+                        <TableCell className="text-right text-sm">
+                          {isFirstItemOfOrder
+                            ? `${order.deliveryFee?.toLocaleString() || 0}`
+                            : ""}
+                        </TableCell>
+                        {/* 정산예정 - 첫 행만 표시 */}
+                        <TableCell className="text-right text-sm">
+                          {isFirstItemOfOrder
+                            ? order.expectedSettlementAmount != null
+                              ? `${order.expectedSettlementAmount.toLocaleString()}`
+                              : "-"
+                            : ""}
+                        </TableCell>
+                        {/* 매핑 - 모든 행 표시 */}
+                        <TableCell>
+                          {item.id && (
+                            <Badge
+                              variant={isMapped ? "default" : "outline"}
+                              className="cursor-pointer hover:opacity-80 text-xs"
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setSelectedMappingItem(item);
+                                setMappingDialogOpen(true);
+                              }}
+                            >
+                              {isMapped ? (item.erpProdCd || "매핑") : "미매핑"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        {/* 주문일 - 첫 행만 표시 */}
+                        <TableCell className="text-sm whitespace-nowrap">
+                          {isFirstItemOfOrder ? formatDate(order.orderedAt) : ""}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                <span>총 {total}건</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 0}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    이전
+                  </Button>
+                  <span className="flex items-center px-2">
+                    {page + 1} / {totalPages || 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page + 1 >= totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    다음
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ERP 품목 매핑 다이얼로그 */}
+      {selectedOrder && (
+        <MappingDialog
+          order={selectedOrder}
+          initialItemId={selectedMappingItem?.id}
+          open={mappingDialogOpen}
+          onOpenChange={(open) => {
+            setMappingDialogOpen(open);
+            if (!open) setSelectedMappingItem(null);
+          }}
+          onMappingComplete={fetchOrders}
+        />
+      )}
+    </div>
+  );
+}

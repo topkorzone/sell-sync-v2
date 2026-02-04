@@ -1,27 +1,48 @@
-import { supabase } from './supabase';
+import api from './api';
+import { getAccessToken, setTokens, clearTokens } from './token';
+
+const DEV_MOCK = import.meta.env.DEV && import.meta.env.VITE_MOCK_AUTH === 'true';
+
+const MOCK_USER = {
+  id: '00000000-0000-0000-0000-000000000000',
+  email: 'dev@example.com',
+  role: 'admin',
+  tenantId: '00000000-0000-0000-0000-000000000000',
+};
 
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (error) throw error;
-  return data;
+  if (DEV_MOCK) {
+    setTokens('mock-access-token', 'mock-refresh-token');
+    return { ...MOCK_USER, accessToken: 'mock-access-token', refreshToken: 'mock-refresh-token' };
+  }
+  const { data } = await api.post('/api/v1/auth/login', { email, password });
+  const { accessToken, refreshToken } = data.data;
+  setTokens(accessToken, refreshToken);
+  return data.data;
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  if (DEV_MOCK) {
+    clearTokens();
+    return;
+  }
+  try {
+    await api.post('/api/v1/auth/logout');
+  } finally {
+    clearTokens();
+  }
 }
 
 export async function getSession() {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error) throw error;
-  return session;
-}
+  if (DEV_MOCK) return MOCK_USER;
 
-export async function getUser() {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error) throw error;
-  return user;
+  const token = getAccessToken();
+  if (!token) return null;
+
+  try {
+    const { data } = await api.get('/api/v1/auth/me');
+    return data.data;
+  } catch {
+    return null;
+  }
 }

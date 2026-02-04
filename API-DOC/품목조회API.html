@@ -1,0 +1,1567 @@
+<html class="" style="--default-font-size: 12; --table-title-font-size: 12; --size-rate: 1; --space-rate: 1; --radius-rate: 1; --line-height-rate: 1;"><head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title></title>
+
+    
+
+    <link rel="stylesheet" href="https://resourcev3.ecount.com/ec3/ecerp/contents/css/common.870598903943092874.20.css">
+    <link rel="stylesheet" href="https://resourcev3.ecount.com/ec3/ecerp/contents/css/navigation.4883516799222055040.20.css">
+    <link rel="stylesheet" href="https://resourcev3.ecount.com/ec3/ecerp/contents/css/font-awesome.2087988592463992907.20.css">
+
+    
+
+        <link rel="stylesheet" href="https://resourcev3.ecount.com/ec3/ecerp/contents/css/common-responsive.8650870893971009224.20.css">
+
+    
+
+    <style>
+        .font-user-setting {
+            font-family: '','','','Arial','Apple SD Gothic Neo','Gulim';
+        }
+    </style>
+<script id="mew-web3script" type="application/javascript" async="false" src="chrome-extension://nlbmnnijcnlegkjjpcfjclmcfggfefdm/js/cxWeb3.js"></script><script type="application/javascript" async="false" id="mew-extensionId">(function(t){window.extensionID=t})("nlbmnnijcnlegkjjpcfjclmcfggfefdm")</script></head>
+
+
+<body class="fluid-vertical navigation-type1 openapi font-arial" id="body_html" style="" cz-shortcut-listen="true">
+    <script language="javascript">
+        window.__EC_BASE_URL = "https://resourcev3.ecount.com/ec3/ecerp";
+    </script>
+
+    
+
+    
+
+    <div class="wrapper-frame disabled-apps disabled-bookmark">
+
+        <!-- 상단 -->
+        <div class="wrapper-frame-universal-nav">
+            <!-- wrapper-frame-quick-menu -->
+            <div class="wrapper-universal-nav">
+                <!-- quick-menu -->
+                <div class="wrapper-toggle-nav" id="wrapperToggleBtn">
+                    <!-- qm-toggle-nav -->
+                    <div class="toggler-nav"></div>
+                </div>
+
+                <div class="wrapper-company-logo">
+                    <!-- qm-company-logo -->
+                    <a href="#" onclick="mainReload();" data-toggle="tooltip" data-placement="right" title="" data-original-title="(주)이카운트이카운트이카운트이카운트이카운트이카운트이카운트이카운트">
+                            <img src="https://resourcev3.ecount.com/static/contents/images/ci/ecount-api-ci-155-35.png" alt="logo">
+                    </a>
+                </div>
+                <div class="wrapper-language">
+                    <button class="btn btn-default btn-selectbox" data-toggle="dropdown" id="API_Lan" type="button">한국 (한국어)</button>
+                    <ul class="dropdown-menu dropdown-menu-right">
+                        <li id="li_ko-KR" class="active"><a href="#" onclick="lanTypeChange('ko-KR');">한국 (한국어)</a></li>
+                        <li id="li_en-US"><a href="#" onclick="lanTypeChange('en-US');">United States (English)</a></li>
+                        <li id="li_zh-CN"><a href="#" onclick="lanTypeChange('zh-CN');">中国 (简体中文)</a></li>
+                        <li id="li_zh-TW"><a href="#" onclick="lanTypeChange('zh-TW');">台灣 (繁體中文)</a></li>
+                        <li id="li_ja-JP"><a href="#" onclick="lanTypeChange('ja-JP');">日本 (日本語)</a></li>
+                        <li id="li_vi-VN"><a href="#" onclick="lanTypeChange('vi-VN');">Việt Nam (Tiếng Việt)</a></li>
+                        <li id="li_es"><a href="#" onclick="lanTypeChange('es');">América Latina (Español)</a></li>
+                        <li id="li_en-MY"><a href="#" onclick="lanTypeChange('en-MY');">Malaysia (English)</a></li>
+                        <li id="li_id-ID"><a href="#" onclick="lanTypeChange('id-ID');">Indonesia (English)</a></li>
+                        <li id="li_th-TH"><a href="#" onclick="lanTypeChange('th-TH');">ประเทศไทย (ไทย)</a></li>
+                        <li id="li_en-PH"><a href="#" onclick="lanTypeChange('en-PH');">Philippines (English)</a></li>
+                        <li id="li_ru-UZ"><a href="#" onclick="lanTypeChange('ru-UZ');">Uzbekistan (Russian)</a></li>
+                        <li id="li_ru-UZ"><a href="#" onclick="lanTypeChange('ru-UZ');">香港 (繁體中文)</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="menuArea" class="wrapper-frame-local-nav">
+            <div class="wrapper-local-nav">
+                <ul>
+                    <li class="" id="howToUseOpenApi" title="main"><a href="#" title="HowToUseOpenApi">오픈 API 이용방법</a></li>
+                    <li class="" id="faq" title="main"><a href="#" title="FAQOpenApi">자주묻는질문(FAQ)</a></li>
+                    <li class="" id="commonAPI" title="parent">
+                        <a href="#" title="ViewZoneApi">공통(필수)API</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class="" id="menuZone" title="child"><a href="#" title="ViewZoneApi">Zone</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="login" title="child"><a href="#" title="ViewLoginApi">로그인</a></li>
+                        </ul>
+                    </li>
+                    <li class="active" id="saveBasic" title="parent">
+                        <a href="#" title="InsertBasicCustApi">기초등록API</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class="" id="saveBasic_1" title="child"><a href="#" title="InsertBasicCustApi">거래처등록</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="saveBasic_2" title="child"><a href="#" title="InsertBasicProductApi">품목등록</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="getBasic_1" title="child"><a href="#" title="ViewBasicProductApi">품목조회(단건)</a></li>
+                        </ul>
+                        <ul>
+                            <li class="active" id="getBasic_2" title="child"><a href="#" title="ViewBasicProductsListApi">품목조회</a></li>
+                        </ul>
+                    </li>
+                    <li class="" id="sale" title="parent">
+                        <a href="#" title="InsertQuotationApi">영업관리API</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class="" id="sale_1" title="child"><a href="#" title="InsertQuotationApi">견적서입력</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="sale_2" title="child"><a href="#" title="InsertSalesOrderApi">주문서입력</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="sale_3" title="child"><a href="#" title="InsertSalesApi">판매입력</a></li>
+                        </ul>
+                    </li>
+                    <li class="" id="purchases" title="parent">
+                        <a href="#" title="ViewPurchasesOrderApi">구매관리API</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class="" id="purchases_1" title="child"><a href="#" title="ViewPurchasesOrderApi">발주서조회</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="purchases_2" title="child"><a href="#" title="InsertPurchasesApi">구매입력</a></li>
+                        </ul>
+                    </li>
+                    <li class="" id="order" title="parent">
+
+                        <a href="#" title="InsertJobOrderApi">생산관리API</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class="" id="saleOrder_1" title="child"><a href="#" title="InsertJobOrderApi">작업지시서입력</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="saleOrder_2" title="child"><a href="#" title="InsertGoodsIssuedApi">생산불출입력</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="saleOrder_3" title="child"><a href="#" title="InsertGoodsReceiptApi">생산입고 I</a></li>
+                        </ul>
+                    </li>
+                    <li class="" id="inventory" title="parent">
+                        <a href="#" title="ViewInventoryBalanceStatusApi">(재고)출력물API</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class="" id="inventory_1" title="child"><a href="#" title="ViewInventoryBalanceStatusApi">재고현황(단건)</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="inventory_2" title="child"><a href="#" title="ViewListInventoryBalanceStatusApi">재고현황</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="inventory_3" title="child"><a href="#" title="ViewInventoryBalanceStatusByLocationApi">창고별재고현황(단건)</a></li>
+                        </ul>
+                        <ul>
+                            <li class="" id="inventory_4" title="child"><a href="#" title="ViewListInventoryBalanceStatusByLocationApi">창고별재고현황</a></li>
+                        </ul>
+                    </li>
+                    <li class="" id="account" title="parent">
+
+                        <a href="#" title="InsertInvoiceAutoApi">회계API</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class="" id="account_1" title="child"><a href="#" title="InsertInvoiceAutoApi">매출·매입전표 II 자동분개</a></li>
+                        </ul>
+                    </li>
+                    <li class="" id="OpenMarket" title="parent">
+
+                        <a href="#" title="InsertOpenMarketApi">쇼핑몰API</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class="" id="openMarket_1" title="child"><a href="#" title="InsertOpenMarketApi">주문API(쇼핑몰관리)</a></li>
+                        </ul>
+                    </li>
+                    <li class="" id="clockInOut" title="parent">
+
+                        <a href="#" title="InsertClockInOutApi">근태관리 API</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class=" " id="clockInOut_1" title="child"><a href="#" title="InsertClockInOutApi">출/퇴근기록부(사원)</a></li>
+                        </ul>
+                    </li>
+                    <li class="" id="board" title="parent">
+                        <a href="#" title="InsertBoardApi">﻿게시판API</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class="" id="board_1" title="child"><a href="#" title="InsertBoardApi">게시판입력</a></li>
+                        </ul>
+                    </li>
+                    <li class="hidden" id="Record" title="parent">
+                        <a href="#" title="RecordApi">근태입력</a>
+                        <div class="nav-option"><span class="icon-nav-arrow"></span></div>
+                        <ul>
+                            <li class=" hidden" id="record" title="child"><a href="#" title="InsertWorkInOut">근태입력</a></li>
+                        </ul>
+                    </li>
+                    <li class="" id="runApi" title="main"><a href="#" title="RunApi">API 직접실행(사전테스트)</a></li>
+
+                </ul>
+            </div>
+        </div>
+
+        <div class="wrapper-frame-body">
+            <div class="page page-fluid show" style="display: block;">
+
+
+    <div class="page page-fluid show"> 
+
+        <div class="header">
+            <div class="wrapper-title">
+                <div class="wrapper-toolbar">
+                    <span class="page-name">품목조회API<!-- 품목조회 API --></span>
+                </div>
+            </div>
+            <!--//.wrapper-title-->
+
+        </div>
+        <!--//.header-->
+
+        <div class="contents contents-fixed" style="top: 29px; margin-top: 29px;">
+            <div class="wrapper-sub-title">개요<!-- 개요--></div>
+            <div class="wrapper-sub-content">
+                외부 서비스와 연계를 통해서 ERP의 품목을 조회할 수 있습니다.
+            </div>
+            <div class="wrapper-sub-title">요청 데이터 형식</div>
+            <table class="table table-bordered table-hover">
+                <colgroup>
+                    <col style="width: 150px">
+                    <col style="width: ">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>항목</th><!-- 항목 -->
+                        <th>설명</th><!-- 설명 -->
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>호출방식</td>
+                        <td>POST</td>
+                    </tr>
+                    <tr>
+                        <td>Content-Type</td>
+                        <td>application/json</td>
+                    </tr>
+                    <tr>
+                        <td>Test URL</td>
+                        <td><div id="divTEST_URL">https://sboapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/GetBasicProductsList?SESSION_ID={SESSION_ID}}</div></td>
+                    </tr>
+                    <tr>
+                        <td>Request URL</td>
+                        <td><div id="divURL">https://oapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/GetBasicProductsList?SESSION_ID={SESSION_ID}}</div></td>
+                    </tr>
+                    <tr>
+                        <td>자료포맷 종류</td>
+                        <td>JSON(Paramenter, Result)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+
+
+            <div class="wrapper-sub-title">자료포맷 종류</div>
+            <table class="table table-bordered table-hover">
+                <colgroup>
+                    <col style="width: 160px">
+                    <col style="width: 250px">
+                    <col style="width: 110px">
+                    <col style="width: 90px">
+                    <col style="width: 90px">
+                    <col style="width: ">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>변수</th><!-- 변수 -->
+                        <th>변수명</th><!-- 변수명 -->
+                        <th>자릿수</th><!-- 자릿수 -->
+                        <th>이카운트필수</th><!-- 이카운트필수 -->
+                        <th>양식필수</th><!-- 양식필수 -->
+                        <th>설명</th><!-- 설명 -->
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>SESSION_ID</td>
+                        <td>세션ID<!-- 세션ID --></td>
+                        <td class="text-center">STRING(50)</td>
+                        <td class="text-center">Y</td>
+                        <td></td>
+                        <td>로그인 API 호출 후 받은 SESSION_ID(세션ID)</td>
+                    </tr>
+                    <tr>
+                        <td>PROD_CD</td>
+                        <td>품목코드<!-- 품목코드 --></td>
+                        <td class="text-center">STRING(20000)</td>
+                        <td class="text-center"></td>
+                        <td></td>
+                        <td>입력내용<br data-no-escape="">  - 조회하기 원하는 품목 코드를 입력합니다.<br data-no-escape="">  - 여러 품목을 검색 시 구분값 '∬' 을 추가하여 조회할 수 있습니다.<br data-no-escape="">입력글자제한<br data-no-escape="">  - 기 등록된 품목코드를 입력합니다.<br data-no-escape="">  - 최대 20000자</td>
+                        
+                    </tr>
+                    <tr>
+                        <td>COMMA_FLAG</td>
+                        <td>Comma 포함 여부<!-- Comma 포함 여부 --></td>
+                        <td class="text-center">CHAR(1)</td>
+                        <td class="text-center"></td>
+                        <td></td>
+                        <td>이카운트는 Comma(',')를  구분값인 '∬' 로 변경하여 전송합니다.<br data-no-escape="">따라서 품목코드에 콤마가 포함되어 있는 경우 Y로 입력합니다.<br data-no-escape="">기본값 'N'<br data-no-escape="">입력값 'Y', 'N'</td>
+                        
+                    </tr>
+                    <tr>
+                        <td>PROD_TYPE</td>
+                        <td>품목구분<!-- 품목타입 --></td>
+                        <td class="text-center">STRING(20)</td>
+                        <td class="text-center"></td>
+                        <td></td>
+                        <td>입력내용<br data-no-escape=""> - 조회하기 원하는 품목 타입을 입력합니다.<br data-no-escape=""> - 여러 품목타입을 검색 시 구분값 '∬' 을 추가하여 조회할 수 있습니다.<br data-no-escape="">입력글자제한<br data-no-escape=""> - 품목타입을 입력합니다. 입력하지 않으면 전체검색됩니다.<br data-no-escape=""> - 0 : 원재료<br data-no-escape=""> - 1 : 제품<br data-no-escape=""> - 2 : 반제품<br data-no-escape=""> - 3 : 상품<br data-no-escape=""> - 4 : 부재료<br data-no-escape=""> - 7 : 무형상품<br data-no-escape=""> - 최대 20자</td>
+                        
+                    </tr>
+
+                    <tr>
+                        <td>FROM_PROD_CD</td>
+                        <td>품목코드<!-- 품목코드범위 --></td>
+                        <td class="text-center">STRING(20)</td>
+                        <td class="text-center"></td>
+                        <td></td>
+                        <td>입력내용<br data-no-escape="">  - 조회하기 원하는 품목 코드를 입력합니다.<br data-no-escape="">입력글자제한<br data-no-escape="">  - 기 등록된 품목코드를 입력합니다.<br data-no-escape="">  - 최대 20자</td>
+                    </tr>
+                    <tr>
+                        <td>TO_PROD_CD</td>
+                        <td>품목코드<!-- 품목코드범위 --></td>
+                        <td class="text-center">STRING(20)</td>
+                        <td class="text-center"></td>
+                        <td></td>
+                        <td>입력내용<br data-no-escape="">  - 조회하기 원하는 품목 코드를 입력합니다.<br data-no-escape="">입력글자제한<br data-no-escape="">  - 기 등록된 품목코드를 입력합니다.<br data-no-escape="">  - 최대 20자</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="wrapper-sub-title">Result</div>
+            <table class="table table-bordered table-hover">
+                <colgroup>
+                    <col style="width: 180px">
+                    <col style="width: 210px">
+                    <col style="width: 100px">
+                    <col style="width: 70px">
+                    <col style="width: ">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>변수</th><!-- 변수 -->
+                        <th>변수명</th><!-- 변수명 -->
+                        <th>자릿수</th><!-- 자릿수 -->
+                        <th>필수여부</th><!-- 필수여부 -->
+                        <th>설명</th><!-- 설명 -->
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Status</td>
+                        <td>처리결과<!-- 처리결과 --></td>
+                        <td class="text-center"></td>
+                        <td class="text-center">Y</td>
+                        <td>200(정상)<!-- 200(정상) --></td>
+                    </tr>
+                    <tr class="info text-bold">
+                        <td>Error</td>
+                        <td>오류<!-- 오류 --></td>
+                        <td class="text-center"></td>
+                        <td class="text-center"></td>
+                        <td>오류가 발생할 경우<!-- 오류가 발생할 경우 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent1">Code</td>
+                        <td>오류코드<!-- 오류코드 --></td>
+                        <td class="text-center"></td>
+                        <td class="text-center"></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td class="indent1">Message</td>
+                        <td>오류내용<!-- 오류내용 --></td>
+                        <td class="text-center"></td>
+                        <td class="text-center"></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td class="indent1">MessageDetail</td>
+                        <td>오류상세정보<!-- 오류상세정보 --></td>
+                        <td class="text-center"></td>
+                        <td class="text-center"></td>
+                        <td></td>
+                    </tr>
+
+                    <tr class="warning text-bold">
+                        <td>Data</td>
+                        <td></td>
+                        <td class="text-center"></td>
+                        <td class="text-center"></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td class="indent1">EXPIRE_DATE</td>
+                        <td>EXPIRE_DATE</td>
+                        <td class="text-center"></td>
+                        <td class="text-center">Y</td>
+                        <td style="color:Red;">주어진 날짜의 이카운트 API 현재버전서비스가 종료됩니다.</td>
+                    </tr>
+                    <tr>
+                        <td class="indent1">QUANTITY_INFO</td>
+                        <td>허용수량</td>
+                        <td class="text-center"></td>
+                        <td class="text-center">Y</td>
+                        <td>1시간, 1일 동안 전송할 수 있는 허용 수량</td>
+                    </tr>
+                    <tr>
+                        <td class="indent1">TRACE_ID</td>
+                        <td>로그확인용 일련번호</td><!-- 로그확인용 일련번호 -->
+                        <td class="text-center"></td>
+                        <td class="text-center">Y</td>
+                        <td>오류발생시 로그 확인을 위한 일련번호</td><!-- 오류발생시 로그 확인을 위한 일련번호 -->
+                    </tr>
+                    <tr class="info text-bold">
+                        <td class="indent1">Result</td>
+                        <td></td>
+                        <td class="text-center"></td>
+                        <td class="text-center"></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">PROD_CD</td>
+                        <td>품목코드<!-- 품목코드 --></td>
+                        <td class="text-center">STRING(20)</td>
+                        <td class="text-center">Y</td>
+                        <td>
+                            품목코드<!-- 품목코드 -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">PROD_DES</td>
+                        <td>품목명<!-- 품목명 --></td>
+                        <td class="text-center">STRING(100)</td>
+                        <td class="text-center">Y</td>
+
+                        <td>품목명<!-- 품목명 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">SIZE_FLAG</td>
+                        <td>규격구분<!-- 규격구분 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>규격구분설정(1:규격명, 2:규격그룹, 3:규격계산, 4:규격계산그룹)<!-- 규격구분설정(1:규격명, 2:규격그룹, 3:규격계산, 4:규격계산그룹)  --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">SIZE_DES</td>
+                        <td>규격<!-- 규격 --></td>
+                        <td class="text-center">STRING(100)</td>
+                        <td class="text-center"></td>
+
+                        <td>규격(규격그룹/규격계산그룹을 선택한 경우에는 등록된 그룹의 코드 또는 명 입력)<!-- 규격(규격그룹/규격계산그룹을 선택한 경우에는 등록된 그룹의 코드 또는 명 입력)  --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">UNIT</td>
+                        <td>단위<!-- 단위 --></td>
+                        <td class="text-center">STRING(6)</td>
+                        <td class="text-center"></td>
+
+                        <td>
+                            단위<!-- 단위 -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">PROD_TYPE</td>
+                        <td>품목구분<!-- 품목구분 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>
+                            품목구분 : 원재료0, 부재료4, 제품1, 반제품2, 상품3, 무형상품7. 미입력 시 기본값은 3.<!-- 품목구분 : 원재료0, 부재료4, 제품1, 반제품2, 상품3, 무형상품7. 미입력 시 기본값은 3. -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">SET_FLAG</td>
+                        <td>세트여부<!-- 세트여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>
+                            세트여부 (1:사용, 0:미사용)<!-- 세트여부 (1:사용, 0:미사용) -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">BAL_FLAG</td>
+                        <td>재고수량관리<!-- 재고수량관리 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>
+                            품목의 수량관리 여부(0:수량관리제외, 1:수량관리대상)<!-- 품목의 수량관리 여부(0:수량관리제외, 1:수량관리대상)  -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">WH_CD</td>
+                        <td>생산공정<!-- 생산공정 --></td>
+                        <td class="text-center">STRING(5)</td>
+                        <td class="text-center"></td>
+
+                        <td>생산공정코드 : 재고1 &gt; 기초등록 &gt; 창고등록 &gt; 신규 &gt; 구분 : 공장 &gt; 생산공정<!-- 생산공정코드 : 재고1 > 기초등록 > 창고등록 > 신규 > 구분 : 공장 > 생산공정 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">IN_PRICE</td>
+                        <td>입고단가<!-- 입고단가 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>입고단가<!-- 입고단가 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">IN_PRICE_VAT</td>
+                        <td>입고단가Vat포함여부<!-- 입고단가VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>입고단가부가세포함여부 : 미포함0, 포함1. 미입력 시 기본값은 0<!-- 입고단가부가세포함여부 : 미포함0, 포함1. 미입력 시 기본값은 0 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE</td>
+                        <td>출고단가<!-- 출고단가 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>출고단가<!-- 출고단가 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE_VAT</td>
+                        <td>출고단가Vat포함여부<!-- 출고단가VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>출고단가부가세포함여부 : 미포함0, 포함1. 미입력 시 기본값은 0<!-- 출고단가부가세포함여부 : 미포함0, 포함1. 미입력 시 기본값은 0 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">REMARKS_WIN</td>
+                        <td>검색창내용<!-- 검색창내용 --></td>
+                        <td class="text-center">STRING(100)</td>
+                        <td class="text-center"></td>
+
+                        <td>
+                            검색창내용<!-- 검색창내용 -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CLASS_CD</td>
+                        <td>그룹코드<!-- 그룹코드 --></td>
+                        <td class="text-center">STRING(5)</td>
+                        <td class="text-center"></td>
+
+                        <td>
+                            품목그룹1코드<!-- 품목그룹1코드 -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CLASS_CD2</td>
+                        <td>그룹코드2<!-- 그룹코드2 --></td>
+                        <td class="text-center">STRING(5)</td>
+                        <td class="text-center"></td>
+
+                        <td>품목그룹2코드<!--  품목그룹2코드 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CLASS_CD3</td>
+                        <td>그룹코드3<!-- 그룹코드3 --></td>
+                        <td class="text-center">STRING(5)</td>
+                        <td class="text-center"></td>
+
+                        <td>품목그룹3코드<!-- 품목그룹3코드 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">BAR_CODE</td>
+                        <td>바코드<!-- 바코드 --></td>
+                        <td class="text-center">STRING(30)</td>
+                        <td class="text-center"></td>
+
+                        <td>바코드<!-- 바코드 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">TAX</td>
+                        <td>부가가치세율<!-- 부가가치세율 --></td>
+                        <td class="text-center">NUMERIC(6,3)</td>
+                        <td class="text-center"></td>
+
+                        <td>판매전표입력시 반영될 부가세율<!-- 판매전표입력시 반영될 부가세율 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">VAT_RATE_BY</td>
+                        <td>부가세율(매입)<!-- 부가세율(매입) --></td>
+                        <td class="text-center">NUMERIC(6,3)</td>
+                        <td class="text-center"></td>
+
+                        <td>구매전표입력시 반영될 부가세율<!-- 구매전표입력시 반영될 부가세율 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CS_FLAG</td>
+                        <td>C-Portal사용여부<!-- CS사용여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>C-Portal사용여부 (1:사용, 0:미사용)<!-- CS사용여부 (1:사용, 0:미사용) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">REMARKS</td>
+                        <td>적요<!-- 적요 --></td>
+                        <td class="text-center">STRING(100)</td>
+                        <td class="text-center"></td>
+
+                        <td>적요<!-- 적요 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">INSPECT_TYPE_CD</td>
+                        <td>품질검사유형<!-- 품질검사유형 --></td>
+                        <td class="text-center">STRING(30)</td>
+                        <td class="text-center"></td>
+
+                        <td>품질검사유형 : 재고2 &gt; 품질관리 &gt; 품질검사 &gt; 품질검사유형등록<!-- 품질검사유형 : 재고2 > 품질관리 > 품질검사 > 품질검사유형등록 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">INSPECT_STATUS</td>
+                        <td>품질검사방법<!-- 품질검사방법 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>품질검사방법설정(L:전수, S:샘플링)<!-- 품질검사방법설정(L:전수, S:샘플링) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">SAMPLE_PERCENT</td>
+                        <td>샘플링비율<!-- 샘플링비율 --></td>
+                        <td class="text-center">NUMERIC(4,2)</td>
+                        <td class="text-center"></td>
+
+                        <td>샘플링비율<!-- 샘플링비율 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CSORD_C0001</td>
+                        <td>C-Portal최소주문수량체크<!-- CS최소주문수량구분 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>C-Portal주문수량 입력 시 품목의 재고 확인여부를 설정(Y:사용, N:사용안함)<!-- CS주문수량 입력 시 품목의 재고 확인여부를 설정(B:기본설정, Y:사용, N:사용안함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CSORD_TEXT</td>
+                        <td>C-Portal최소주문수량<!-- CS최소주문수량  --></td>
+                        <td class="text-center">NUMERIC(15,3)</td>
+                        <td class="text-center"></td>
+
+                        <td>C-Portal주문수량 입력 시 최소주문수량을 입력<!-- CS주문수량 입력 시 최소주문수량을 입력 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CSORD_C0003</td>
+                        <td>C-Portal최소주문단위<!-- CS최소주문단위 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>C-Portal주문수량 입력 시 최소주문단위을 설정(Y:사용, N:사용안함)<!-- CS주문수량 입력 시 최소주문단위을 설정(Y:사용, N:사용안함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">IN_TERM</td>
+                        <td>조달기간<!-- 조달기간 --></td>
+                        <td class="text-center">STRING(5)</td>
+                        <td class="text-center"></td>
+
+                        <td>조달기간<!-- 조달기간 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">MIN_QTY</td>
+                        <td>최소구매단위<!-- 최소구매단위 --></td>
+                        <td class="text-center">STRING(7)</td>
+                        <td class="text-center"></td>
+
+                        <td>최소구매단위<!-- 최소구매단위 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CUST</td>
+                        <td>구매처<!-- 구매처 --></td>
+                        <td class="text-center">STRING(30)</td>
+                        <td class="text-center"></td>
+
+                        <td>구매처<!-- 구매처 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">EXCH_RATE</td>
+                        <td>당수량(분자)<!-- 수량환상비율 --></td>
+                        <td class="text-center">STRING(30)</td>
+                        <td class="text-center"></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">DENO_RATE</td>
+                        <td>당수량(분모)<!-- 사용자정의수량 비율 --></td>
+                        <td class="text-center">STRING(30)</td>
+                        <td class="text-center"></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE1</td>
+                        <td>단가A<!-- 단가A --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가A<!-- 단가A --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE1_VAT_YN</td>
+                        <td>단가A VAT포함여부<!-- 단가A VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가A VAT포함여부(N:포함안함, Y:포함)<!-- 단가A VAT포함여부(N:포함안함, Y:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE2</td>
+                        <td>단가B<!-- 단가B --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가B<!-- 단가B --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE2_VAT_YN</td>
+                        <td>단가B VAT포함여부<!-- 단가B VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가B VAT포함여부(N:포함안함, Y:포함)<!-- 단가B VAT포함여부(N:포함안함, Y:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE3</td>
+                        <td>단가C<!-- 단가C --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가C<!-- 단가C --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE3_VAT_YN</td>
+                        <td>단가C VAT포함여부<!-- 단가C VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가C VAT포함여부(N:포함안함, Y:포함)<!-- 단가C VAT포함여부(N:포함안함, Y:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE4</td>
+                        <td>단가D<!-- 단가D --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가D<!-- 단가D --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE4_VAT_YN</td>
+                        <td>단가D VAT포함여부<!-- 단가D VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가D VAT포함여부(N:포함안함, Y:포함)<!-- 단가D VAT포함여부(N:포함안함, Y:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE5</td>
+                        <td>단가E<!-- 단가E --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가E<!-- 단가E --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE5_VAT_YN</td>
+                        <td>단가E VAT포함여부<!-- 단가E VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가E VAT포함여부(N:포함안함, Y:포함)<!-- 단가E VAT포함여부(N:포함안함, Y:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE6</td>
+                        <td>단가F<!-- 단가F --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가F<!-- 단가F --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE6_VAT_YN</td>
+                        <td>단가F VAT포함여부<!-- 단가F VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가F VAT포함여부(N:포함안함, Y:포함)<!-- 단가F VAT포함여부(N:포함안함, Y:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE7</td>
+                        <td>단가G<!-- 단가G --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가G<!-- 단가G --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE7_VAT_YN</td>
+                        <td>단가G VAT포함여부<!-- 단가G VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가G VAT포함여부(N:포함안함, Y:포함)<!-- 단가G VAT포함여부(N:포함안함, Y:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE8</td>
+                        <td>단가H<!-- 단가H --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가H<!-- 단가H --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE8_VAT_YN</td>
+                        <td>단가H VAT포함여부<!-- 단가H VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가H VAT포함여부(N:포함안함, Y:포함)<!-- 단가H VAT포함여부(N:포함안함, Y:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE9</td>
+                        <td>단가I<!-- 단가I --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가I<!-- 단가I --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE9_VAT_YN</td>
+                        <td>단가I VAT포함여부<!-- 단가I VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가I VAT포함여부(N:포함안함, Y:포함)<!-- 단가I VAT포함여부(N:포함안함, Y:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE10</td>
+                        <td>단가J<!-- 단가J --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가J<!-- 단가J --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_PRICE10_VAT_YN</td>
+                        <td>단가J VAT포함여부<!-- 단가J VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>단가J VAT포함여부(N:포함안함, Y:포함)<!-- 단가J VAT포함여부(N:포함안함, Y:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUTSIDE_PRICE</td>
+                        <td>외주비단가<!-- 외주비단가 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>외주비단가<!-- 외주비단가 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUTSIDE_PRICE_VAT</td>
+                        <td>외주비단가 VAT포함여부<!-- 외주비단가 VAT포함여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>외주비단가 VAT포함여부(0:포함안함, 1:포함)<!-- 외주비단가 VAT포함여부(0:포함안함, 1:포함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">LABOR_WEIGHT</td>
+                        <td>노무비단가<!-- 노무비단가 --></td>
+                        <td class="text-center">NUMERIC(7,2)</td>
+                        <td class="text-center"></td>
+
+                        <td>노무비단가<!-- 노무비단가 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">EXPENSES_WEIGHT</td>
+                        <td>경비가중치<!-- 경비가중치 --></td>
+                        <td class="text-center">NUMERIC(7,2)</td>
+                        <td class="text-center"></td>
+
+                        <td>경비가중치<!-- 경비가중치 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">MATERIAL_COST</td>
+                        <td>재료비표준원가<!-- 재료비표준원가 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>재료비표준원가<!-- 재료비표준원가 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">EXPENSE_COST</td>
+                        <td>경비표준원가<!-- 경비표준원가 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>경비표준원가<!-- 경비표준원가 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">LABOR_COST</td>
+                        <td>노무비표준원가<!-- 노무비표준원가 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>노무비표준원가<!-- 노무비표준원가 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">OUT_COST</td>
+                        <td>외주비표준원가<!-- 외주비표준원가 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>외주비표준원가<!-- 외주비표준원가 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CONT1</td>
+                        <td>문자형추가항목1<!-- 문자형추가항목1 --></td>
+                        <td class="text-center">STRING(100)</td>
+                        <td class="text-center"></td>
+
+                        <td>문자형추가항목1<!-- 문자형추가항목1 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CONT2</td>
+                        <td>문자형추가항목2<!-- 문자형추가항목2 --></td>
+                        <td class="text-center">STRING(100)</td>
+                        <td class="text-center"></td>
+
+                        <td>문자형추가항목2<!-- 문자형추가항목2 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CONT3</td>
+                        <td>문자형추가항목3<!-- 문자형추가항목3 --></td>
+                        <td class="text-center">STRING(100)</td>
+                        <td class="text-center"></td>
+
+                        <td>문자형추가항목3<!-- 문자형추가항목3 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CONT4</td>
+                        <td>문자형추가항목4<!-- 문자형추가항목4 --></td>
+                        <td class="text-center">STRING(100)</td>
+                        <td class="text-center"></td>
+
+                        <td>문자형추가항목4<!-- 문자형추가항목4 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CONT5</td>
+                        <td>문자형추가항목5<!-- 문자형추가항목5 --></td>
+                        <td class="text-center">STRING(100)</td>
+                        <td class="text-center"></td>
+
+                        <td>문자형추가항목5<!-- 문자형추가항목5 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">CONT6</td>
+                        <td>문자형추가항목6<!-- 문자형추가항목6 --></td>
+                        <td class="text-center">STRING(100)</td>
+                        <td class="text-center"></td>
+
+                        <td>문자형추가항목6<!-- 문자형추가항목6 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">NO_USER1</td>
+                        <td>숫자형추가항목1<!-- 숫자형추가항목1 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>숫자형추가항목1<!-- 숫자형추가항목1 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">NO_USER2</td>
+                        <td>숫자형추가항목2<!-- 숫자형추가항목2 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>숫자형추가항목2<!-- 숫자형추가항목2 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">NO_USER3</td>
+                        <td>숫자형추가항목3<!-- 숫자형추가항목3 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>숫자형추가항목3<!-- 숫자형추가항목3 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">NO_USER4</td>
+                        <td>숫자형추가항목4<!-- 숫자형추가항목4 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>숫자형추가항목4<!-- 숫자형추가항목4 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">NO_USER5</td>
+                        <td>숫자형추가항목5<!-- 숫자형추가항목5 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>숫자형추가항목5<!-- 숫자형추가항목5 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">NO_USER6</td>
+                        <td>숫자형추가항목6<!-- 숫자형추가항목6 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>숫자형추가항목6<!-- 숫자형추가항목6 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">NO_USER7</td>
+                        <td>숫자형추가항목7<!-- 숫자형추가항목7 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>숫자형추가항목7<!-- 숫자형추가항목7 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">NO_USER8</td>
+                        <td>숫자형추가항목8<!-- 숫자형추가항목8 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>숫자형추가항목8<!-- 숫자형추가항목8 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">NO_USER9</td>
+                        <td>숫자형추가항목9<!-- 숫자형추가항목9 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>숫자형추가항목9<!-- 숫자형추가항목9 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">NO_USER10</td>
+                        <td>숫자형추가항목10<!-- 숫자형추가항목10 --></td>
+                        <td class="text-center">NUMERIC(18,6)</td>
+                        <td class="text-center"></td>
+
+                        <td>숫자형추가항목10<!-- 숫자형추가항목10 --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">ITEM_TYPE</td>
+                        <td>관리항목<!-- 관리항목 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>관리항목(B:기본설정,M:필수입력,Y:선택입력,N:사용안함)<!-- 관리항목(B:기본설정,M:필수입력,Y:선택입력,N:사용안함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">SERIAL_TYPE</td>
+                        <td>시리얼/로트<!-- 시리얼/로트 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>시리얼(B:기본설정,M:필수입력,Y:선택입력,N:사용안함)<!-- 시리얼(B:기본설정,M:필수입력,Y:선택입력,N:사용안함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">PROD_SELL_TYPE</td>
+                        <td>생산전표생성-판매<!-- 생산전표생성-판매 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>생산전표생성-판매(B:기본설정,Y:사용,N:사용안함)<!-- 생산전표생성-판매(B:기본설정,Y:사용,N:사용안함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">PROD_WHMOVE_TYPE</td>
+                        <td>생산전표생성-창고이동<!-- 생산전표생성-창고이동 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>생산전표생성-창고이동(B:기본설정,Y:사용,N:사용안함)<!-- 생산전표생성-창고이동(B:기본설정,Y:사용,N:사용안함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">QC_BUY_TYPE</td>
+                        <td>품질검사요청-구매<!-- 품질검사요청-구매 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>품질검사요청-구매(B:기본설정,Y:사용,N:사용안함)<!-- 품질검사요청-구매(B:기본설정,Y:사용,N:사용안함) --></td>
+                    </tr>
+                    <tr>
+                        <td class="indent2">QC_YN</td>
+                        <td>품질검사요청여부<!-- 품질검사요청여부 --></td>
+                        <td class="text-center">STRING(1)</td>
+                        <td class="text-center"></td>
+
+                        <td>품질검사요청여부(Y:사용, N:미사용)<!-- 품질검사요청여부(Y:사용, N:미사용) --></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="wrapper-sub-title">Example Parameter</div>
+            <pre><div id="divURL2">URL : https://oapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/GetBasicProductsList?SESSION_ID={SESSION_ID}}<br>// Replace {ZONE} with real zone information when entering Zone data.(Without {})</div></pre>
+            <pre style="max-height:340px;overflow-y:scroll;">{"PROD_CD": "00001","PROD_TYPE":"0"}</pre>
+            <div class="wrapper-sub-title">Example Result</div>
+            <pre style="max-height:340px;overflow-y:scroll;">[SUCCESS]
+{
+     "Data": {
+      "EXPIRE_DATE":"",
+      "QUANTITY_INFO": 시간당 연속 오류 제한 건수" : 0/30," 1시간 허용량" : 3/6000," 1일 허용량" : 4/10000",
+      "TRACE_ID":"db6138411aad40e42dc5e209f65f6f3c",
+      "Result": "[{"PROD_CD": "00001", 
+    "PROD_DES": "test123", 
+    "SIZE_FLAG": "1", 
+    "SIZE_DES": "6", 
+    "UNIT": "EA", 
+    "PROD_TYPE": "3", 
+    "SET_FLAG": "1", 
+    "BAL_FLAG": "1",
+    "WH_CD": "00002", 
+    "IN_PRICE": "700.0000000000", 
+    "SIZE_CD": "", 
+    "IN_PRICE_VAT": "1", 
+    "REMARKS_WIN": "test", 
+    "CLASS_CD": "00001", 
+    "CLASS_CD2": "", 
+    "CLASS_CD3": "", 
+    "BAR_CODE": "8801166053051", 
+    "TAX": "20.000", 
+    "VAT_RATE_BY": "20.00000", 
+    "CS_FLAG": "1", 
+    "REMARKS": "123", 
+    "INSPECT_TYPE_CD": "1", 
+    "INSPECT_STATUS": "L", 
+    "SAMPLE_PERCENT": "0.00", 
+    "IN_TERM": "0", 
+    "MIN_QTY": "0.0000000000", 
+    "CUST": "2118702818", 
+    "EXCH_RATE": "0.0000000000", 
+    "DENO_RATE": 1, 
+    "OUT_PRICE": "12000.0000000000", 
+    "OUT_PRICE1": "0.0000000000", 
+    "OUT_PRICE2": "0.0000000000", 
+    "OUT_PRICE3": "111.0000000000", 
+    "OUT_PRICE4": "0.0000000000", 
+    "OUT_PRICE5": "0.0000000000", 
+    "OUT_PRICE6": "0.0000000000", 
+    "OUT_PRICE7": "0.0000000000", 
+    "OUT_PRICE8": "0.0000000000", 
+    "OUT_PRICE9": "0.0000000000", 
+    "OUT_PRICE10": "0.0000000000", 
+    "OUT_PRICE_VAT": "1", 
+    "OUT_PRICE1_VAT_YN": "N", 
+    "OUT_PRICE2_VAT_YN": "Y",
+    "OUT_PRICE3_VAT_YN": "N", 
+    "OUT_PRICE4_VAT_YN": "Y", 
+    "OUT_PRICE5_VAT_YN": "N", 
+    "OUT_PRICE6_VAT_YN": "N", 
+    "OUT_PRICE7_VAT_YN": "N", 
+    "OUT_PRICE8_VAT_YN": "N", 
+    "OUT_PRICE9_VAT_YN": "N", 
+    "OUT_PRICE10_VAT_YN": "N", 
+    "OUTSIDE_PRICE": "6000.0000000000", 
+    "OUTSIDE_PRICE_VAT": "1", 
+    "LABOR_WEIGHT": "1.0000000000", 
+    "EXPENSES_WEIGHT": "1.00", 
+    "MATERIAL_COST": "0.0000000000", 
+    "EXPENSE_COST": "0.0000000000", 
+    "LABOR_COST": "0.0000000000", 
+    "OUT_COST": "0.0000000000", 
+    "CONT1": "", 
+    "CONT2": "", 
+    "CONT3": "", 
+    "CONT4": "", 
+    "CONT5": "",
+    "CONT6": "",
+    "NO_USER1": "0.0000000000", 
+    "NO_USER2": "0.0000000000", 
+    "NO_USER3": "0.0000000000",
+    "SERIAL_TYPE": "B", 
+    "PROD_SELL_TYPE": "B", 
+    "PROD_WHMOVE_TYPE": "B",
+    "QC_BUY_TYPE": "B", 
+    "QC_YN": "B", 
+    "SAFE_QTY": "0.0000000000"
+    }
+    ]"
+  },
+  "Status": "200",
+  "Errors": null,
+  "Error": null,
+  "Timestamp": "2020-01-00 00:00:00.000",
+  "RequestKey": null,
+  "IsEnableNoL4": true,
+  "RefreshTimestamp": "0",
+  "AsyncActionKey": null
+}
+        
+            </pre>
+            
+
+
+            <div class="wrapper-sub-title">오류 종류별 설명</div>
+            <pre style="max-height:340px;">오류 종류별 상세 설명은 상세보기 링크를 클릭해 확인해 주시기 바랍니다. 
+<a href="#" onclick="GetIndex(this);" title="HowToUseOpenApi"> 상세보기</a> </pre>
+        </div>
+    <!--//.contents-->
+    <br><br>
+</div>
+
+
+
+    <script type="text/javascript">
+        returnBaseUrl("/OAPI/V2/InventoryBasic/GetBasicProductsList?SESSION_ID={SESSION_ID}}", true);
+
+    </script>
+
+
+</div>
+        <div id="app-container"></div></div>
+    </div>
+
+
+    
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/bundle/bundle.tpl.8233131456687638777.20.js"></script>
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/js/require/require.resource.ko-kr.5791283433180801239.20.js"></script>
+
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/js/culture/culture.ko-kr.-1678852387851777531.20.js"></script>
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/bundle/bundle.prototype.-456703351254940676.20.js"></script>
+    
+
+    
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/js/require/require.menu.8649029706770725646.20.js"></script>
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/js/require/require.lib.5044923330350895530.20.js"></script>
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/js/require/require.widget.8109605505284949148.20.js"></script>
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/js/require/require.ecmodule.-4151404265014005624.20.js"></script>
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/js/require/require.pagebase.-8218525905016694081.20.js"></script>
+
+    
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/bundle/bundle.infra.-4316620449986280518.20.js"></script>
+    
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/bundle/bundle.frameworks.-7213976850302577412.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/js/ecount.resource.9019031203096153106.20.js"></script>
+    
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/bundle/bundle.commonextra.5367021303838016637.20.js"></script>
+
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/bundle/bundle.jquery-ui.-2866987405494320048.20.js"></script>
+    <script type="text/javascript">
+        var timestamp_str = "639056954033224828:1".split(":");
+        ecount.ecRefreshTimestamp = timestamp_str[0];
+        ecount.ecRefreshMode = timestamp_str[1] || 1;
+    </script>
+    
+    <script type="text/javascript">
+    window["viewBag" + ""] = {
+        login_lantype: 'ko-KR',
+        LBL02432: "재고현황", //재고현황
+        LBL00689: "구매입력", //구매입력
+        LBL00679: "발주서조회", //발주서조회
+        LBL11331: "품목조회", //품목조회
+        LBL10117: "회계API", //회계API
+        LBL13799: "오픈마켓API", //오픈마켓 API
+        LBL00432: "견적서입력", //견적서 입력
+        LBL02595: "주문서입력", //주문서 입력
+        LBL02955: "판매입력", //판매입력
+        LBL02361: "작업지시서입력", //작업지시서입력
+        LBL01554: "생산불출입력", //생산불출입력
+        LBL03893: "생산입고 I", //생산입고I
+        LBL30010: "매출·매입전표 II 자동분개", //매출,매입전표II
+        LBL13842: "주문API(쇼핑몰관리)", //주문 API(쇼핑몰관리)
+        BTN00008: "닫기", //닫기
+        MSG00006: "{0}을(를) 정확하게 입력 바랍니다", // {0}을(를) 정확하게 입력 바랍니다.
+        MSG30173: "로그인 하기 바랍니다.", // 로그인 하기 바랍니다.
+        MSG05800: "보내는값을 입력해야합니다.", // 보내는값을 입력해야 합니다.
+        MSG05806: "JSON 데이터 형식이 잘못 되었습니다.",  // JSON 데이터 형식이 잘못 되었습니다.
+        MSG05801: "해당 API JSON 데이터 형식이 아닙니다.", // 해당 API JSON 데이터 형식이 아닙니다
+        MSG05808: "배열 형식이 아닙니다.", //배열 형식이 아닙니다.
+        MSG05809: "배열이 없습니다.",//배열이 없습니다.
+        MSG00897: "에러발생",// 에러발생
+        MSG00205: "등록된 데이터가 없습니다.",// 등록된 데이터가 없습니다.
+        MSG30174: "로그인이 실패했습니다.",// 로그인이 실패했습니다
+        LBL13982: "API 검색", //API검색
+        LBL13976: "직접 실행할 API를 선택하세요.",//직접실행할 API를 선택하세요.
+        LBL14015: "쇼핑몰API",//쇼핑몰API
+        LBL02987: "품목등록",//품목등록
+        LBL03149: "거래처등록",//거래처등록
+        LBL16459: "기초등록API",//기초등록API
+        LBL13953: "영업관리API",//영업관리API
+        LBL00654: "구매관리",//구매관리
+        LBL13954: "생산관리API",//생산관리
+        LBL05395: "재고",//재고
+        LBL02834: "출력물",//출력물
+        LBL17509: "오픈API메뉴 추가제안",
+        MSG09204: "오픈API 서비스가 필요한 메뉴가 있다면 아래에  해당 메뉴와 구체적인 사유를 함께 기재하여 전송바랍니다.<br data-no-escape>(수집된 정보는 메뉴별 빈도수 파악에 활용되며, 별도로 답변 드리지 않는 점 양해 부탁드립니다.)",
+        BTN00823: "전송",
+        MSG00814: "발송되었습니다.",
+        LBL09762: "오류내용",
+        LBL20955: "품목조회(단건)",//품목조회(단건)
+        LBL20956: "재고현황(단건)",//재고현황(단건)
+        LBL02726: "창고별재고현황",//창고별재고현황
+        LBL21018: "창고별재고현황(단건)",//창고별재고현황(단건)
+        LBL13984: "메뉴구분",//메뉴구분
+        LBL40677: "근태관리 API",//근태관리 API
+        LBL90132: "출/퇴근기록부(사원)",//출퇴근기록부(사원)
+        LBL40751: "﻿게시판API",//게시판API
+        LBL40752: "게시판입력",//게시판입력
+    }
+    window.__EC_PAGE_ID = "";
+    window.__EC_BASE_URL = "https://resourcev3.ecount.com/ec3/ecerp";
+    window.__EC_V3_V5_USE_DEFAULT = "Y";
+    window.__EC_CURRENT_HOST_NAME = "v3oapi";
+    window.__EC_CURRENT_V5_HOST_NAME = "v5oapi";
+    window.__EC_BASE_HOST_INFO = {
+        v5http: {
+            http: 'loginlx#.ecount.com/ec5',
+            https: 'loginlx#.ecount.com/ec5'
+        },
+        v5res: {
+            http: 'resource.ecount.com/ec5/static',
+            https: 'resource.ecount.com/ec5/static'
+        },
+        v3oapi: {
+            http: 'oapi#.ecount.com',
+            https: 'oapi#.ecount.com'
+        },
+        v5oapi: {
+            http: 'oapilx#.ecount.com/ec5',
+            https: 'oapilx#.ecount.com/ec5'
+        },
+        default: {
+            http: 'login#.ecount.com',
+            https: 'login#.ecount.com'
+        }
+    };
+    document.title = "Ecount API";
+
+    </script>
+    <script src="https://resourcev3.ecount.com/ec3/ecerp/contents/pages/ui.others/oapi/views/oapimanual.-1659034251779628272.20.js" type="text/javascript"></script>
+
+
+    <script language="javascript">
+
+        
+        var favoritesInfo = {"isUseFavorites":true,"isFavoritesAddition":false,"programID":"","alias":"","resx_name":"","is_alias_default_menu_name":false};ecount.system.IsEnableNoL4 = false;ecount.system.V5Version = '202602030628552707';
+
+        //Path는 뒤에 상세URL
+        //zoneYn은 존을 표시하는지 여부
+        function returnBaseUrl(path, zoneYn, customDomain) {
+            // URL 정보 세팅
+
+            var url = document.domain;
+            //임의로 URL고정시켜 테스트할수있도록 만들어놓음
+            if (customDomain != undefined && customDomain != "") {
+                url = customDomain;
+            }
+            var sub = url.substring(0, url.indexOf("."));
+            var testSub = "";
+
+            url = url.substring(url.indexOf(".")).replace("ecounterp.com", "ecount.com");
+
+            if (sub.indexOf("test") >= 0 || sub.indexOf("tsboapi") >= 0 || sub.indexOf("toapi") >= 0) {
+                sub = "toapi";
+                testSub = "tsboapi";
+                zoneYn = false;
+            }
+            else if (sub.indexOf("zeus") >= 0 || sub.indexOf("zoapi") >= 0 || sub.indexOf("zsboapi") >= 0) {
+                sub = "zoapi" + sub.replace("zeus", "");
+                testSub = "zsboapi";
+                zoneYn = false;
+            }
+            else if (sub.indexOf("apollo") >= 0 || sub.indexOf("aoapi") >= 0 || sub.indexOf("asboapi") >= 0) {
+                sub = "aoapi";
+                testSub = "asboapi";
+                zoneYn = false;
+            }
+            else if (sub.indexOf("hera") >= 0 || sub.indexOf("hoapi" || sub.indexOf("hsboapi") >= 0) >= 0) {
+                sub = "hoapi";
+                testSub = "hsboapi";
+                if (zoneYn) {
+                    sub += "{ZONE}";
+                    testSub += "{ZONE}";
+                }
+            }
+            else if (sub.indexOf("stage") >= 0) {
+                sub = "stageoapi";
+                testSub = "stagesboapi";
+                if (zoneYn) {
+                    sub += "{ZONE}";
+                    testSub += "{ZONE}";
+                }
+            }
+            else if (sub.indexOf("login7") >= 0) {
+                sub = "oapi7";
+                testSub = "sboapi7";
+                if (zoneYn) {
+                    sub += "{ZONE}";
+                    testSub += "{ZONE}";
+                }
+            }
+            else if (sub.indexOf("login8") >= 0) {
+                sub = "oapi8";
+                testSub = "sboapi8";
+                if (zoneYn) {
+                    sub += "{ZONE}";
+                    testSub += "{ZONE}";
+                }
+            }
+            else {
+                sub = "oapi";
+                testSub = "sboapi";
+                if (zoneYn) {
+                    sub += "{ZONE}";
+                    testSub += "{ZONE}";
+                }
+            }
+            var zoneStr = "";
+            if (zoneYn) {
+                zoneStr = "</br>// Replace {ZONE} with real zone information when entering Zone data.(Without {})";
+            }
+
+            $("#divTEST_URL").html("https://" + testSub + url + path);
+            url = "https://" + sub + url + path;
+
+            $("#divURL").html(url);
+            $("#divURL2").html("URL : " + url + zoneStr);
+        }
+
+        function returnExecutionUrl(path, zone, customDomain, testYn) {
+            // URL 정보 세팅
+
+            var url = document.domain;
+            //임의로 URL고정시켜 테스트할수있도록 만들어놓음
+            if (customDomain != undefined && customDomain != "") {
+                url = customDomain;
+            }
+            //일반서브도메인
+            var sub = url.substring(0, url.indexOf("."));
+            //테스트용서브도메인
+            var testSub = "";
+            //테스트접속여부
+
+            url = url.substring(url.indexOf("."));
+            //sboapi 포함시 테스트
+            if (sub.indexOf("sboapi") >= 0) {
+                testYn = true;
+            }
+
+            //테스트주소
+            if (match = /^(test|toapi|tsboapi)(-dev)?$/i.exec(sub)) {
+                sub = "test"; //"toapi";
+                testSub = "test"; //"tsboapi";
+
+                // 제우스, 로컬은 5.0 URL 사용 (스테이지, 센터는 L7에서 리다이렉트)
+                if (path.indexOf("/OAPI/V2/Zone") >= 0 || path.indexOf("/OAPI/V2/OAPILogin") >= 0) {
+                    url = url + ":5001";
+                    path = path.indexOf("/OAPI/V2/Zone") >= 0 ? "/ec5/api/app.oapi/action/OAPIGetZoneAction" : path.indexOf("/OAPI/V2/OAPILogin") >= 0 ? "/ec5/api/app.oapi/action/OAPILoginAction" : path;
+                }
+            }
+            //제우스주소
+            else if (match = /^(zeus|zoapi|zsboapi)(\d*)([a-z|A-Z]+)?(\d*)(-dev)?$/i.exec(sub)) {
+                sub = "zoapi" + (match[2] || "") + (match[3] || "") + (match[4] || "");
+                testSub = "zsboapi" + (match[2] || "") + (match[3] || "") + (match[4] || "");
+
+                // 제우스, 로컬은 5.0 URL 사용 (스테이지, 센터는 L7에서 리다이렉트)
+                if (path.indexOf("/OAPI/V2/Zone") >= 0 || path.indexOf("/OAPI/V2/OAPILogin") >= 0) {
+                    path = path.indexOf("/OAPI/V2/Zone") >= 0 ? "/ec5/api/app.oapi/action/OAPIGetZoneAction" : path.indexOf("/OAPI/V2/OAPILogin") >= 0 ? "/ec5/api/app.oapi/action/OAPILoginAction" : path;
+                    sub = "zoapi" + (match[2] || "") + "lx" + (match[3] || "") + (match[4] || "");
+                    testSub = "zsboapi" + (match[2] || "") + "lx" + (match[3] || "") + (match[4] || "");
+                }
+            }
+            //아폴로주소(sboapi 없으나 미리넣어놓음 아폴로는 현재 테스트에 사용하지않음)
+            else if (match = /^(apollo|aopai|asboapi)(\d*)([a-z|A-Z]+)?(\d*)(-dev)?$/i.exec(sub)) {
+                sub = "aoapi" + (match[2] || "") + (match[3] || "") + (match[4] || "");
+                testSub = "asboapi" + (match[2] || "") + (match[3] || "") + (match[4] || "");
+            }
+            //헤라주소
+            else if (match = /^(hera|hoapi|hsboapi)(\d*)([a-z|A-Z]+)?(\d*)$/i.exec(sub)) {
+                sub = "hoapi" + (match[2] || "") + (match[3] || zone) + (match[4] || "");
+                testSub = "hsboapi" + (match[2] || "") + (match[3] || zone)/* + (match[4] || "")*/;
+            }
+            //스테이지주소
+            else if (match = /^(ssboapi|soapi|stagesboapi|stageoapi|stage)([a-z|A-Z]+)?(\d*)(-dev)?$/i.exec(sub)) {
+                sub = "soapi" + (match[2] || zone ||"") + (match[3] || "");
+                testSub = "ssboapi" + (match[2] || zone ||"") + (match[3] || "");
+            }
+            //실서버
+            else if (match = /^(login|oapi|sboapi)(\d*)([a-z|A-Z]+)?(\d*)$/i.exec(sub)) {
+                sub = "oapi" + (match[2] || "") + (match[3] || zone)  + (match[4] || "");
+                testSub = "sboapi" + (match[2] || "") + (match[3] || zone)  /*+ (match[4] || "")*/;
+
+                // 제우스, 로컬, 센터7번은 5.0 URL 사용 (스테이지, 센터는 L7에서 리다이렉트)
+                if (path.indexOf("/OAPI/V2/Zone") >= 0 || path.indexOf("/OAPI/V2/OAPILogin") >= 0) {
+                    path = path.indexOf("/OAPI/V2/Zone") >= 0 ? "/ec5/api/app.oapi/action/OAPIGetZoneAction" : path.indexOf("/OAPI/V2/OAPILogin") >= 0 ? "/ec5/api/app.oapi/action/OAPILoginAction" : path;
+                    sub = "oapi" + (match[2] || "") + "lx" + (match[3] || zone)  + (match[4] || "");
+                    testSub = "sboapi" + (match[2] || "") + "lx" + (match[3] || zone)  /*+ (match[4] || "")*/;
+                }
+            }
+            else {
+                sub = "oapi" + (zone || "");
+                testSub = "sboapi" + (zone || "");
+            }
+
+
+            if (testYn) {
+                url = "https://" + testSub + url + path;
+            } else {
+                url = "https://" + sub + url + path;
+            }
+
+            return url.replace("ecounterp.com", "ecount.com");
+        }
+    </script>
+    <script language="javascript">
+        try {
+            if (location.search.indexOf('SESSION_ID') > -1) {
+                var errorMsgInfo = {
+                    errorMessage: '3.0 base page',
+                    cookie: document.cookie,
+                    base_URI: location.href,
+                    target: 'layoutOAPI.cshtml'
+                };
+                var _param = {};
+
+                _param.Request = {
+                    LOG_TYPE: "R",
+                    JSON_DATA: errorMsgInfo,
+                };
+
+                ecount.common.api({
+                    url: "/SVC/Common/Infra/InsertWriteLog",
+                    ecPageID: 'layoutOAPI.cshtml',
+                    data: Object.toJSON(_param),
+                    useOriginURL: true,
+                    success: function (result) {},
+                });
+            }
+            else {
+                var logData = {
+                    title: '3.0 base page',
+                    name: '',   //info
+                    messages: {
+                        cookie: document.cookie,
+                        base_URI: location.href,
+                        target: 'layoutOAPI.cshtml'
+                    }
+                };
+
+                window.$ECV5.sendToV5Async({
+                    ecPageID: 'layoutOAPI.cshtml',
+                    url: '/api/app.common/action/CreatePTPLogRowAction',
+                    data: logData
+                });
+            }
+        }
+        catch (error) {
+            console.error(error);
+        }
+    </script>
+
+
+
+<script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.5.-2599769486598100135.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.4.870598903943092874.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.11.870598903943092874.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.40.6498061571100810241.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.8.-8676373637899736390.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.7.2718977482955502972.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.6.-8676373637899736390.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.7.3638467153434779225.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.1.6498061571100810241.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.2.-2599769486598100135.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.2.3638467153434779225.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.1.3638467153434779225.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.18.6498061571100810241.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.0.6498061571100810241.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.16.-2599769486598100135.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.8.6498061571100810241.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.0.8587032642650582742.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.4.8587032642650582742.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.btn.10000.0.-2599769486598100135.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.3.8650870893971009224.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.9.870598903943092874.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.10.6498061571100810241.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.70.870598903943092874.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lgn.1000.0.870598903943092874.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.6.2718977482955502972.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.3.-2599769486598100135.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.lbl.5000.14.2718977482955502972.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.btn.10000.4.8587032642650582742.20.js"></script><script type="text/javascript" async="" src="https://resourcev3.ecount.com/ec3/ecerp/contents/services/language_resources/ko-kr.msg.1000.30.870598903943092874.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/static/bundle/bundle-v5-ec-core.production.9308891003783508.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.browser.framework/ecount.browser.framework.268025f1.20.js"></script><div class="glasp-extension-toaster" style="display: block; width: 320px; margin: unset; padding: unset; border: unset; border-radius: unset; outline: unset; background-color: unset; box-shadow: unset; position: fixed; top: 40px; right: 24px; z-index: 9999;"></div><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/static/bundle/bundle-v5-lodash.production.9010978562486388.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/static/bundle/bundle-v5-decimal.production.1408117580758407.8.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/static/bundle/bundle-v5-react.production.1287530089570618.5.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/static/bundle/bundle-v5-excel.production.9819947818441334.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/static/bundle/bundle-v5-marked.production.10011232192044226.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/static/bundle/bundle-v5-ec-lib.production.9776890631017032.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.infra.base/ecount.infra.base.resource.ko-KR/ecount.infra.base.resource.ko-KR.9780437287906434.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.infra.common/ecount.infra.common.resource.ko-KR/ecount.infra.common.resource.ko-KR.8409566301294072.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.infra.attribute/ecount.infra.attribute.resource.ko-KR/ecount.infra.attribute.resource.ko-KR.9015178013212902.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.infra.flow2/ecount.infra.flow2.resource.ko-KR/ecount.infra.flow2.resource.ko-KR.8870720262574650.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.usecase.common/ecount.usecase.common.resource.ko-KR/ecount.usecase.common.resource.ko-KR.1343403320838299.5.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.usecase.flow/ecount.usecase.flow.resource.ko-KR/ecount.usecase.flow.resource.ko-KR.9637214524426906.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.browser.external/ecount.browser.external.resource.ko-KR/ecount.browser.external.resource.ko-KR.9317295991224070.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.browser.uikit/ecount.browser.uikit.resource.ko-KR/ecount.browser.uikit.resource.ko-KR.237300704196104.62.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.browser.app/ecount.browser.app.resource.ko-KR/ecount.browser.app.resource.ko-KR.1544821586638480.2.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.application.common/ecount.application.common.resource.ko-KR/ecount.application.common.resource.ko-KR.8946156555981426.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.application.view/ecount.application.view.resource.ko-KR/ecount.application.view.resource.ko-KR.1346688381986720.8.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/resources/ecount.application.features/ecount.application.features.resource.ko-KR/ecount.application.features.resource.ko-KR.10188961972787140.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecmodule.ai/ecmodule.ai.8494d163.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.fundamental.define/ecount.fundamental.define.d57bce68.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.fundamental.datamodel/ecount.fundamental.datamodel.f680c290.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.infra.base/ecount.infra.base.30f5136d.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.infra.bridge/ecount.infra.bridge.ef67db06.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.infra.common/ecount.infra.common.1d3711d9.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.infra.attribute/ecount.infra.attribute.0b39e17d.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.infra.flow2/ecount.infra.flow2.7c17122a.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.usecase.abstraction/ecount.usecase.abstraction.9091857015984146.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.usecase.base/ecount.usecase.base.478418fe.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.usecase.common/ecount.usecase.common.c56e5d69.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.usecase.flow/ecount.usecase.flow.4e41c0bd.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.browser.external/ecount.browser.external.79392ea8.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.browser.uikit/ecount.browser.uikit.04c3b830.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.browser.app/ecount.browser.app.c0e36e8a.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.application.common/ecount.application.common.628f2b2f.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.application.view/ecount.application.view.a633c857.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.application.features/ecount.application.features.c1fa14eb.20.js"></script><script type="text/javascript" async="" src="https://resource.ecount.com/ec5/static/ecountv5/modules/ecount.application.entry/ecount.application.entry.c306be8b.20.js"></script></body><div class="glasp-extension" style="display: block; width: unset; margin: unset; padding: unset; border: unset; border-radius: unset; outline: unset; background-color: unset; box-shadow: unset; position: fixed; bottom: 16px; right: 16px; z-index: 9999;"><div class="glasp-extension" style="font-family: inherit;"></div></div></html>

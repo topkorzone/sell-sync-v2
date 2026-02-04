@@ -48,7 +48,7 @@ public class OrderController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Page<OrderResponse> orders = orderService.getOrders(status, marketplace,
-                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderedAt")));
         return ApiResponse.ok(PageResponse.of(orders.getContent(), orders.getNumber(),
                 orders.getSize(), orders.getTotalElements()));
     }

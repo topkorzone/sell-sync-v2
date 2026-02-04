@@ -1,65 +1,56 @@
-'use client';
-
-import React from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { Layout, Menu } from 'antd';
+import { useLocation, useNavigate } from "react-router-dom";
 import {
-  DashboardOutlined,
-  ShoppingCartOutlined,
-  CarOutlined,
-  DollarOutlined,
-  SettingOutlined,
-} from '@ant-design/icons';
-
-const { Sider } = Layout;
+  LayoutDashboard,
+  ShoppingCart,
+  Link2,
+  Truck,
+  DollarSign,
+  Settings,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const menuItems = [
-  { key: '/', icon: <DashboardOutlined />, label: '대시보드' },
-  { key: '/orders', icon: <ShoppingCartOutlined />, label: '주문 관리' },
-  { key: '/shipments', icon: <CarOutlined />, label: '배송 관리' },
-  { key: '/settlements', icon: <DollarOutlined />, label: '정산 관리' },
-  { key: '/settings', icon: <SettingOutlined />, label: '설정' },
+  { path: "/", icon: LayoutDashboard, label: "대시보드" },
+  { path: "/orders", icon: ShoppingCart, label: "주문 관리" },
+  { path: "/product-mappings", icon: Link2, label: "상품 매핑" },
+  { path: "/shipments", icon: Truck, label: "배송 관리" },
+  { path: "/settlements", icon: DollarSign, label: "정산 관리" },
+  { path: "/settings", icon: Settings, label: "설정" },
 ];
 
 export default function Sidebar() {
-  const pathname = usePathname();
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const selectedKey = menuItems
-    .filter((item) => item.key !== '/')
-    .find((item) => pathname.startsWith(item.key))?.key ?? '/';
+  const isActive = (path: string) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
 
   return (
-    <Sider
-      width={220}
-      style={{
-        overflow: 'auto',
-        height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        bottom: 0,
-      }}
-    >
-      <div
-        style={{
-          height: 64,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-        }}
-      >
-        <h2 style={{ color: '#fff', margin: 0, fontSize: 18 }}>MarketHub</h2>
+    <aside className="flex h-screen w-56 flex-col border-r border-sidebar-border bg-sidebar">
+      <div className="flex h-16 items-center justify-center border-b border-sidebar-border">
+        <h2 className="text-lg font-semibold text-sidebar-foreground">
+          MarketHub
+        </h2>
       </div>
-      <Menu
-        theme="dark"
-        mode="inline"
-        selectedKeys={[selectedKey]}
-        items={menuItems}
-        onClick={({ key }) => router.push(key)}
-        style={{ marginTop: 8 }}
-      />
-    </Sider>
+      <nav className="flex-1 space-y-1 p-3">
+        {menuItems.map((item) => (
+          <button
+            key={item.path}
+            onClick={() => navigate(item.path)}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              isActive(item.path)
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            )}
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </button>
+        ))}
+      </nav>
+    </aside>
   );
 }
