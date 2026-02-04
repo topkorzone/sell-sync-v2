@@ -22,19 +22,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import api from "@/lib/api";
-import type { Order, OrderItem, OrderItemRow, MarketplaceType, OrderStatus, PageResponse } from "@/types";
+import type { Order, OrderItem, OrderItemRow, MarketplaceType, OrderStatus, PageResponse, MarketplaceCredentialResponse, ApiResponse } from "@/types";
 
-const statusVariants: Record<OrderStatus, "default" | "secondary" | "destructive" | "outline"> = {
-  COLLECTED: "secondary",
-  CONFIRMED: "secondary",
-  READY_TO_SHIP: "outline",
-  SHIPPING: "default",
-  DELIVERED: "default",
-  CANCELLED: "destructive",
-  RETURNED: "destructive",
-  EXCHANGED: "outline",
-  PURCHASE_CONFIRMED: "default",
+// 상태별 뱃지 색상 - CSS 클래스로 직접 지정
+const getStatusBadgeClass = (marketplaceStatus?: string): string => {
+  if (!marketplaceStatus) return "bg-gray-100 text-gray-700 border-gray-200";
+
+  // 결제완료/확인 상태 - 빨간색
+  if (["ACCEPT", "PAYED", "PAYMENT_WAITING"].includes(marketplaceStatus)) {
+    return "bg-red-100 text-red-700 border-red-200";
+  }
+  // 배송지시/준비중 상태 - 파란색
+  if (["INSTRUCT", "DEPARTURE"].includes(marketplaceStatus)) {
+    return "bg-blue-100 text-blue-700 border-blue-200";
+  }
+  // 배송중 상태 - 주황색
+  if (["DELIVERING"].includes(marketplaceStatus)) {
+    return "bg-orange-100 text-orange-700 border-orange-200";
+  }
+  // 배송완료 상태 - 초록색
+  if (["FINAL_DELIVERY", "DELIVERED"].includes(marketplaceStatus)) {
+    return "bg-green-100 text-green-700 border-green-200";
+  }
+  // 구매확정 상태 - 진한 초록색
+  if (["PURCHASE_DECIDED"].includes(marketplaceStatus)) {
+    return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  }
+  // 취소/반품/교환 상태 - 회색
+  if (["CANCEL", "CANCELLED", "RETURN", "RETURNED", "EXCHANGED"].includes(marketplaceStatus)) {
+    return "bg-gray-100 text-gray-500 border-gray-200";
+  }
+  // 상품준비중 상태 - 노란색
+  if (["INSTRUCT"].includes(marketplaceStatus)) {
+    return "bg-yellow-100 text-yellow-700 border-yellow-200";
+  }
+
+  return "bg-gray-100 text-gray-700 border-gray-200";
 };
+
 
 const statusLabels: Record<OrderStatus, string> = {
   COLLECTED: "수집완료",
@@ -172,6 +197,25 @@ export default function Orders() {
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedMappingItem, setSelectedMappingItem] = useState<OrderItem | null>(null);
+  const [registeredMarketplaces, setRegisteredMarketplaces] = useState<MarketplaceType[]>([]);
+
+  // 등록된 마켓플레이스 목록 조회
+  useEffect(() => {
+    const fetchMarketplaces = async () => {
+      try {
+        const { data } = await api.get<ApiResponse<MarketplaceCredentialResponse[]>>(
+          "/api/v1/settings/marketplaces"
+        );
+        const marketplaces = (data.data ?? [])
+          .filter(cred => cred.active)
+          .map(cred => cred.marketplaceType as MarketplaceType);
+        setRegisteredMarketplaces(marketplaces);
+      } catch {
+        // 실패해도 전체 마켓 표시
+      }
+    };
+    fetchMarketplaces();
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -233,11 +277,17 @@ export default function Orders() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">전체 마켓</SelectItem>
-                {Object.entries(marketplaceLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
+                {registeredMarketplaces.length > 0
+                  ? registeredMarketplaces.map((marketplace) => (
+                      <SelectItem key={marketplace} value={marketplace}>
+                        {marketplaceLabels[marketplace] || marketplace}
+                      </SelectItem>
+                    ))
+                  : Object.entries(marketplaceLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
               </SelectContent>
             </Select>
             <Select
@@ -292,16 +342,17 @@ export default function Orders() {
                     <TableHead className="w-[150px]">주문번호</TableHead>
                     <TableHead className="w-[90px]">마켓</TableHead>
                     {/* 상품 레벨 컬럼 */}
-                    <TableHead className="min-w-[180px]">상품명</TableHead>
+                    <TableHead>상품명</TableHead>
                     <TableHead className="w-[120px]">옵션</TableHead>
                     <TableHead className="w-[50px] text-right">수량</TableHead>
                     <TableHead className="w-[80px] text-right">단가</TableHead>
                     <TableHead className="w-[90px] text-right">금액</TableHead>
+                    {/* 배송비, 정산예정 - 금액 다음으로 이동 */}
+                    <TableHead className="w-[70px] text-right">배송비</TableHead>
+                    <TableHead className="w-[90px] text-right">정산예정</TableHead>
                     {/* 주문 레벨 컬럼 (계속) */}
                     <TableHead className="w-[80px]">수취인</TableHead>
                     <TableHead className="w-[80px]">상태</TableHead>
-                    <TableHead className="w-[70px] text-right">배송비</TableHead>
-                    <TableHead className="w-[90px] text-right">정산예정</TableHead>
                     {/* 상품 레벨 컬럼 */}
                     <TableHead className="w-[70px]">매핑</TableHead>
                     {/* 주문 레벨 컬럼 */}
@@ -340,8 +391,8 @@ export default function Orders() {
                             : ""}
                         </TableCell>
                         {/* 상품명 - 모든 행 표시 */}
-                        <TableCell>
-                          <span className="truncate block max-w-[180px] text-sm" title={item.productName}>
+                        <TableCell className="max-w-0">
+                          <span className="truncate block text-sm" title={item.productName}>
                             {item.productName}
                           </span>
                         </TableCell>
@@ -361,31 +412,32 @@ export default function Orders() {
                         <TableCell className="text-right text-sm">
                           {item.totalPrice ? `${item.totalPrice.toLocaleString()}` : "-"}
                         </TableCell>
-                        {/* 수취인 - 첫 행만 표시 */}
-                        <TableCell className="text-sm">
-                          {isFirstItemOfOrder ? order.receiverName : ""}
-                        </TableCell>
-                        {/* 상태 - 첫 행만 표시 */}
-                        <TableCell>
-                          {isFirstItemOfOrder && (
-                            <Badge variant={statusVariants[order.status]} className="text-xs">
-                              {getMarketplaceStatusLabel(order.marketplaceType, order.marketplaceStatus)}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        {/* 배송비 - 첫 행만 표시 */}
+                        {/* 배송비 - 첫 행만 표시 (금액 다음으로 이동) */}
                         <TableCell className="text-right text-sm">
                           {isFirstItemOfOrder
                             ? `${order.deliveryFee?.toLocaleString() || 0}`
                             : ""}
                         </TableCell>
-                        {/* 정산예정 - 첫 행만 표시 */}
+                        {/* 정산예정 - 각 상품별 표시 (배송비 다음으로 이동) */}
                         <TableCell className="text-right text-sm">
-                          {isFirstItemOfOrder
-                            ? order.expectedSettlementAmount != null
-                              ? `${order.expectedSettlementAmount.toLocaleString()}`
-                              : "-"
-                            : ""}
+                          {item.expectedSettlementAmount != null
+                            ? `${item.expectedSettlementAmount.toLocaleString()}`
+                            : "-"}
+                        </TableCell>
+                        {/* 수취인 - 첫 행만 표시 */}
+                        <TableCell className="text-sm">
+                          {isFirstItemOfOrder ? order.receiverName : ""}
+                        </TableCell>
+                        {/* 상태 - 첫 행만 표시 (상태별 색상 구분) */}
+                        <TableCell>
+                          {isFirstItemOfOrder && (
+                            <Badge
+                              variant="outline"
+                              className={`text-xs border ${getStatusBadgeClass(order.marketplaceStatus)}`}
+                            >
+                              {getMarketplaceStatusLabel(order.marketplaceType, order.marketplaceStatus)}
+                            </Badge>
+                          )}
                         </TableCell>
                         {/* 매핑 - 모든 행 표시 */}
                         <TableCell>

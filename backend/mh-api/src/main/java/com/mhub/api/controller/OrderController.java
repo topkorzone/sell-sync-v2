@@ -1,5 +1,6 @@
 package com.mhub.api.controller;
 
+import com.mhub.api.service.OrderCommissionService;
 import com.mhub.common.dto.ApiResponse;
 import com.mhub.common.dto.PageResponse;
 import com.mhub.core.domain.entity.TenantMarketplaceCredential;
@@ -39,6 +40,7 @@ public class OrderController {
     private final OrderService orderService;
     private final OrderSyncService orderSyncService;
     private final TenantMarketplaceCredentialRepository credentialRepository;
+    private final OrderCommissionService orderCommissionService;
 
     @Operation(summary = "List orders")
     @GetMapping
@@ -164,6 +166,35 @@ public class OrderController {
         result.put("status", synced >= 0 ? "SUCCESS" : "RATE_LIMITED");
         result.put("from", from.toString());
         result.put("to", to.toString());
+
+        return ApiResponse.ok(result);
+    }
+
+    @Operation(summary = "Calculate commission for a specific order",
+            description = "특정 주문의 상품들에 대해 수수료율을 조회하고 정산예정금액을 계산합니다. 이미 매핑된 상품에 대해서만 계산됩니다.")
+    @PostMapping("/{id}/commission")
+    public ApiResponse<Map<String, Object>> calculateCommissionForOrder(@PathVariable UUID id) {
+        int updatedItems = orderCommissionService.calculateCommissionForOrder(id);
+        OrderResponse order = orderService.getOrder(id);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("orderId", id);
+        result.put("updatedItems", updatedItems);
+        result.put("expectedSettlementAmount", order.getExpectedSettlementAmount());
+
+        return ApiResponse.ok(result);
+    }
+
+    @Operation(summary = "Calculate commission for pending orders",
+            description = "수수료 미계산 주문들에 대해 일괄로 수수료를 계산합니다. 상품 매핑(동기화) 후 호출하면 됩니다.")
+    @PostMapping("/commission/calculate")
+    public ApiResponse<Map<String, Object>> calculateCommissionForPendingOrders(
+            @RequestParam(defaultValue = "COUPANG") MarketplaceType marketplace) {
+        int updatedOrders = orderCommissionService.calculateCommissionForPendingOrders(marketplace);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("marketplace", marketplace.name());
+        result.put("updatedOrders", updatedOrders);
 
         return ApiResponse.ok(result);
     }

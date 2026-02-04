@@ -11,8 +11,13 @@ import com.mhub.core.domain.entity.TenantMarketplaceCredential;
 import com.mhub.core.domain.enums.MarketplaceType;
 import com.mhub.core.domain.enums.OrderStatus;
 import com.mhub.core.domain.entity.CoupangCommissionRate;
+import com.mhub.core.domain.entity.CoupangSellerProduct;
+import com.mhub.core.domain.repository.CoupangCategoryRepository;
 import com.mhub.core.domain.repository.CoupangCommissionRateRepository;
+import com.mhub.core.domain.repository.CoupangSellerProductRepository;
 import com.mhub.marketplace.adapter.AbstractMarketplaceAdapter;
+import com.mhub.marketplace.adapter.coupang.dto.CoupangCategoryDto;
+import com.mhub.marketplace.adapter.coupang.dto.CoupangSellerProductDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -35,6 +40,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Consumer;
 
 @Slf4j
 @Component
@@ -75,12 +81,18 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
 
     private final ObjectMapper objectMapper;
     private final CoupangCommissionRateRepository commissionRateRepository;
+    private final CoupangSellerProductRepository sellerProductRepository;
+    private final CoupangCategoryRepository categoryRepository;
 
     public CoupangAdapter(WebClient.Builder webClientBuilder, ObjectMapper objectMapper,
-                          CoupangCommissionRateRepository commissionRateRepository) {
+                          CoupangCommissionRateRepository commissionRateRepository,
+                          CoupangSellerProductRepository sellerProductRepository,
+                          CoupangCategoryRepository categoryRepository) {
         super(webClientBuilder, "https://api-gateway.coupang.com");
         this.objectMapper = objectMapper;
         this.commissionRateRepository = commissionRateRepository;
+        this.sellerProductRepository = sellerProductRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
@@ -262,19 +274,16 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
             List<OrderItem> items = new ArrayList<>();
 
             if (orderItems.isArray()) {
-                for (JsonNode orderItem : orderItems) {
-                    BigDecimal orderPrice = extractPrice(orderItem.path("orderPrice"));
+                for (JsonNode orderItemNode : orderItems) {
+                    BigDecimal orderPrice = extractPrice(orderItemNode.path("orderPrice"));
                     totalAmount = totalAmount.add(orderPrice);
 
-                    OrderItem item = parseCoupangOrderItem(orderItem, tenantId);
+                    OrderItem item = parseCoupangOrderItem(orderItemNode, tenantId);
                     if (item != null) {
                         items.add(item);
                     }
                 }
             }
-
-            // 정산예정금 계산
-            BigDecimal expectedSettlementAmount = calculateExpectedSettlement(totalAmount, shippingPrice);
 
             // rawData 저장
             Map<String, Object> rawData = objectMapper.convertValue(shipmentBox, new TypeReference<>() {});
@@ -294,7 +303,6 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
                     .receiverZipcode(receiverZipcode)
                     .totalAmount(totalAmount)
                     .deliveryFee(shippingPrice)
-                    .expectedSettlementAmount(expectedSettlementAmount)
                     .orderedAt(orderedAt)
                     .erpSynced(false)
                     .rawData(rawData)
@@ -321,7 +329,8 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
             int quantity = orderItem.path("shippingCount").asInt(1);
             BigDecimal unitPrice = extractPrice(orderItem.path("salesPrice"));
             BigDecimal totalPrice = extractPrice(orderItem.path("orderPrice"));
-            String productId = String.valueOf(orderItem.path("productId").asLong());
+            Long productIdLong = orderItem.path("productId").asLong(0);
+            String productId = String.valueOf(productIdLong);
             String vendorItemId = String.valueOf(orderItem.path("vendorItemId").asLong());
 
             return OrderItem.builder()
@@ -355,11 +364,17 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
             return null;
         }
         try {
+            // 1. OffsetDateTime 형식 시도 (2026-01-30T09:00:00+09:00)
             OffsetDateTime odt = OffsetDateTime.parse(dateStr);
             return odt.toLocalDateTime();
-        } catch (Exception e) {
-            log.warn("Failed to parse datetime: {}", dateStr);
-            return null;
+        } catch (Exception e1) {
+            try {
+                // 2. LocalDateTime 형식 시도 (2026-01-30T09:00:00)
+                return LocalDateTime.parse(dateStr);
+            } catch (Exception e2) {
+                log.warn("Failed to parse datetime: {}", dateStr);
+                return null;
+            }
         }
     }
 
@@ -480,6 +495,323 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
     }
 
     /**
+     * 쿠팡 등록상품 전체 수집
+     * nextToken 기반 페이징으로 모든 상품을 조회
+     *
+     * @param credential 마켓플레이스 인증 정보
+     * @return 등록상품 목록
+     */
+    public List<CoupangSellerProductDto> collectSellerProducts(TenantMarketplaceCredential credential) {
+        log.info("Collecting Coupang seller products for vendor {}", credential.getSellerId());
+
+        String accessKey = credential.getClientId().trim();
+        String secretKey = credential.getClientSecret().trim();
+        String vendorId = credential.getSellerId().trim();
+
+        List<CoupangSellerProductDto> allProducts = new ArrayList<>();
+        String nextToken = "";
+        int pageCount = 0;
+
+        do {
+            try {
+                pageCount++;
+                String responseBody = executeSellerProductsRequest(accessKey, secretKey, vendorId, nextToken);
+                log.debug("Coupang seller products API response page {}: {}", pageCount, responseBody);
+
+                JsonNode root = objectMapper.readTree(responseBody);
+
+                // 등록상품조회 API는 code가 "SUCCESS" 문자열로 옴 (주문 API는 숫자 200)
+                String codeStr = root.path("code").asText("");
+                if (!"SUCCESS".equals(codeStr)) {
+                    String message = root.path("message").asText("Unknown error");
+                    log.error("Coupang seller products API error: {} - {}", codeStr, message);
+                    throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                            "쿠팡 등록상품 조회 실패: " + message);
+                }
+
+                JsonNode data = root.path("data");
+                if (data.isArray()) {
+                    for (JsonNode productNode : data) {
+                        CoupangSellerProductDto product = parseSellerProduct(productNode, vendorId);
+                        if (product != null) {
+                            allProducts.add(product);
+                        }
+                    }
+                }
+
+                nextToken = root.path("nextToken").asText("");
+                log.debug("Coupang seller products page {} collected, count so far: {}, nextToken: {}",
+                        pageCount, allProducts.size(), nextToken);
+
+                // Rate limit: 다음 페이지 조회 전 300ms 대기
+                if (nextToken != null && !nextToken.isEmpty()) {
+                    try {
+                        Thread.sleep(300);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+
+            } catch (BusinessException e) {
+                throw e;
+            } catch (Exception e) {
+                log.error("Error collecting Coupang seller products at page {}", pageCount, e);
+                throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                        "쿠팡 등록상품 조회 실패: " + e.getMessage());
+            }
+        } while (nextToken != null && !nextToken.isEmpty());
+
+        log.info("Total collected {} Coupang seller products for vendor {} in {} pages",
+                allProducts.size(), vendorId, pageCount);
+        return allProducts;
+    }
+
+    /**
+     * 스트리밍 방식으로 등록상품 수집 (페이지 단위로 콜백 호출)
+     * 각 페이지(최대 100개)를 즉시 콜백으로 전달하여 DB에 저장
+     * Statement timeout 방지를 위해 전체 수집 후 저장하지 않고 페이지 단위로 처리
+     *
+     * @param credential 인증 정보
+     * @param pageConsumer 각 페이지의 상품 리스트를 처리하는 콜백
+     * @return 총 처리된 상품 수
+     */
+    public int streamSellerProducts(TenantMarketplaceCredential credential,
+                                     Consumer<List<CoupangSellerProductDto>> pageConsumer) {
+        log.info("Streaming Coupang seller products for vendor {}", credential.getSellerId());
+
+        String accessKey = credential.getClientId().trim();
+        String secretKey = credential.getClientSecret().trim();
+        String vendorId = credential.getSellerId().trim();
+
+        String nextToken = "";
+        int totalCount = 0;
+        int pageCount = 0;
+
+        do {
+            try {
+                pageCount++;
+                String responseBody = executeSellerProductsRequest(accessKey, secretKey, vendorId, nextToken);
+                log.debug("Coupang seller products API response page {}: {}", pageCount, responseBody);
+
+                JsonNode root = objectMapper.readTree(responseBody);
+
+                // 등록상품조회 API는 code가 "SUCCESS" 문자열로 옴
+                String codeStr = root.path("code").asText("");
+                if (!"SUCCESS".equals(codeStr)) {
+                    String message = root.path("message").asText("Unknown error");
+                    log.error("Coupang seller products API error: {} - {}", codeStr, message);
+                    throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                            "쿠팡 등록상품 조회 실패: " + message);
+                }
+
+                // 현재 페이지 상품 파싱
+                List<CoupangSellerProductDto> pageProducts = new ArrayList<>();
+                JsonNode data = root.path("data");
+                if (data.isArray()) {
+                    for (JsonNode productNode : data) {
+                        CoupangSellerProductDto product = parseSellerProduct(productNode, vendorId);
+                        if (product != null) {
+                            pageProducts.add(product);
+                        }
+                    }
+                }
+
+                // 즉시 콜백 호출 (DB 저장)
+                if (!pageProducts.isEmpty()) {
+                    pageConsumer.accept(pageProducts);
+                    totalCount += pageProducts.size();
+                    log.debug("Streamed page {}: {} products (total: {})", pageCount, pageProducts.size(), totalCount);
+                }
+
+                nextToken = root.path("nextToken").asText("");
+
+                // Rate limit: 다음 페이지 조회 전 300ms 대기
+                if (nextToken != null && !nextToken.isEmpty()) {
+                    try {
+                        Thread.sleep(300);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+
+            } catch (BusinessException e) {
+                throw e;
+            } catch (Exception e) {
+                log.error("Error streaming Coupang seller products at page {}", pageCount, e);
+                throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                        "쿠팡 등록상품 조회 실패: " + e.getMessage());
+            }
+        } while (nextToken != null && !nextToken.isEmpty());
+
+        log.info("Streaming completed: {} products in {} pages for vendor {}", totalCount, pageCount, vendorId);
+        return totalCount;
+    }
+
+    /**
+     * 쿠팡 등록상품조회 API 호출
+     */
+    private String executeSellerProductsRequest(String accessKey, String secretKey, String vendorId,
+                                                  String nextToken) throws Exception {
+        CloseableHttpClient client = null;
+        try {
+            client = HttpClients.createDefault();
+
+            String method = "GET";
+            String path = "/v2/providers/seller_api/apis/api/v1/marketplace/seller-products";
+
+            URIBuilder uriBuilder = new URIBuilder()
+                    .setPath(path)
+                    .addParameter("vendorId", vendorId)
+                    .addParameter("maxPerPage", "100");
+
+            if (nextToken != null && !nextToken.isEmpty()) {
+                uriBuilder.addParameter("nextToken", nextToken);
+            }
+
+            String fullPath = uriBuilder.build().toString();
+            int qIdx = fullPath.indexOf('?');
+            String pathOnly = qIdx >= 0 ? fullPath.substring(0, qIdx) : fullPath;
+            String queryString = qIdx >= 0 ? fullPath.substring(qIdx + 1) : "";
+
+            String datetime = DateTimeFormatter.ofPattern("yyMMdd'T'HHmmss'Z'")
+                    .format(LocalDateTime.now(ZoneOffset.UTC));
+            String message = datetime + method + pathOnly + queryString;
+            String signature = generateHmacSignature(secretKey, message);
+            String authorization = "CEA algorithm=HmacSHA256, access-key=" + accessKey
+                    + ", signed-date=" + datetime + ", signature=" + signature;
+
+            uriBuilder.setScheme(SCHEMA).setHost(HOST).setPort(PORT);
+            HttpGet get = new HttpGet(uriBuilder.build().toString());
+            get.addHeader("Authorization", authorization);
+            get.addHeader("content-type", "application/json");
+            get.addHeader("X-Requested-By", vendorId);
+
+            try (CloseableHttpResponse response = client.execute(get)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+                String responseBody = response.getEntity() != null
+                        ? EntityUtils.toString(response.getEntity()) : "";
+
+                if (statusCode == 401 || statusCode == 403) {
+                    throw new BusinessException(ErrorCodes.MARKETPLACE_AUTH_FAILED,
+                            "쿠팡 인증 실패: API 키를 확인해주세요.");
+                }
+
+                return responseBody;
+            }
+        } finally {
+            if (client != null) {
+                try {
+                    client.close();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
+    /**
+     * 쿠팡 등록상품 JSON 파싱
+     */
+    private CoupangSellerProductDto parseSellerProduct(JsonNode productNode, String vendorId) {
+        try {
+            Long sellerProductId = productNode.path("sellerProductId").asLong();
+            String sellerProductName = productNode.path("sellerProductName").asText(null);
+            Long displayCategoryCode = productNode.path("displayCategoryCode").asLong(0);
+            Long categoryId = productNode.path("categoryId").asLong(0);
+            Long productId = productNode.path("productId").asLong(0);
+            String brand = productNode.path("brand").asText(null);
+            String statusName = productNode.path("statusName").asText(null);
+
+            // 날짜 파싱
+            LocalDateTime saleStartedAt = parseDateTime(productNode.path("saleStartedAt").asText(null));
+            LocalDateTime saleEndedAt = parseDateTime(productNode.path("saleEndedAt").asText(null));
+            LocalDateTime createdAt = parseDateTime(productNode.path("createdAt").asText(null));
+
+            return CoupangSellerProductDto.builder()
+                    .sellerProductId(sellerProductId)
+                    .sellerProductName(sellerProductName)
+                    .displayCategoryCode(displayCategoryCode != 0 ? displayCategoryCode : null)
+                    .categoryId(categoryId != 0 ? categoryId : null)
+                    .productId(productId != 0 ? productId : null)
+                    .vendorId(vendorId)
+                    .saleStartedAt(saleStartedAt)
+                    .saleEndedAt(saleEndedAt)
+                    .brand(brand)
+                    .statusName(statusName)
+                    .createdAt(createdAt)
+                    .build();
+
+        } catch (Exception e) {
+            log.warn("Failed to parse Coupang seller product: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * productId로 수수료율 조회
+     * 등록상품 → displayCategoryCode → rootCategoryCode → 수수료 테이블 순서로 조회
+     * 없으면 DEFAULT 수수료율 반환
+     *
+     * @param productId 상품 ID
+     * @param tenantId 테넌트 ID
+     * @return 수수료율 (%)
+     */
+    private BigDecimal getCommissionRateByProductId(Long productId, UUID tenantId) {
+        try {
+            // 1. 등록상품에서 조회
+            Optional<CoupangSellerProduct> product = sellerProductRepository
+                    .findByTenantIdAndProductId(tenantId, productId);
+
+            if (product.isEmpty()) {
+                log.debug("Product not found in seller products: productId={}, using DEFAULT rate", productId);
+                return getDefaultCommissionRate();
+            }
+
+            CoupangSellerProduct sellerProduct = product.get();
+
+            // 2. 카테고리 기반으로 수수료율 조회
+            Long displayCategoryCode = sellerProduct.getDisplayCategoryCode();
+            if (displayCategoryCode == null) {
+                log.debug("Product has no displayCategoryCode: productId={}, using DEFAULT rate", productId);
+                return getDefaultCommissionRate();
+            }
+
+            Optional<Long> rootCode = categoryRepository
+                    .findRootCategoryCodeByDisplayCategoryCode(displayCategoryCode);
+
+            if (rootCode.isEmpty()) {
+                log.debug("Root category not found for displayCategoryCode={}, using DEFAULT rate", displayCategoryCode);
+                return getDefaultCommissionRate();
+            }
+
+            CoupangCommissionRate rate = commissionRateRepository
+                    .findRateByDisplayCategoryCodeOrDefault(rootCode.get(), LocalDate.now());
+
+            log.debug("Commission rate found via category: productId={}, rootCategoryCode={}, rate={}%",
+                    productId, rootCode.get(), rate.getCommissionRate());
+
+            return rate.getCommissionRate();
+
+        } catch (Exception e) {
+            log.warn("Error getting commission rate for productId={}: {}, using DEFAULT rate",
+                    productId, e.getMessage());
+            return getDefaultCommissionRate();
+        }
+    }
+
+    /**
+     * 기본 수수료율 반환
+     */
+    private BigDecimal getDefaultCommissionRate() {
+        try {
+            CoupangCommissionRate rate = commissionRateRepository.findRateOrDefault("DEFAULT", LocalDate.now());
+            return rate.getCommissionRate();
+        } catch (Exception e) {
+            log.warn("Failed to get DEFAULT commission rate, using 10.8%: {}", e.getMessage());
+            return BigDecimal.valueOf(10.8);
+        }
+    }
+
+    /**
      * 쿠팡 정산예정금 계산
      *
      * 계산 공식:
@@ -489,18 +821,15 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
      *
      * @param totalAmount 주문금액
      * @param deliveryFee 배송비
+     * @param commissionRate 수수료율 (%)
      * @return 정산예정금
      */
-    private BigDecimal calculateExpectedSettlement(BigDecimal totalAmount, BigDecimal deliveryFee) {
+    private BigDecimal calculateExpectedSettlement(BigDecimal totalAmount, BigDecimal deliveryFee, BigDecimal commissionRate) {
         if (totalAmount == null || totalAmount.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
         }
 
         try {
-            // 기본 수수료율 조회 (현재 날짜 기준)
-            CoupangCommissionRate rate = commissionRateRepository.findRateOrDefault("DEFAULT", LocalDate.now());
-            BigDecimal commissionRate = rate.getCommissionRate();
-
             // 상품 수수료 = 주문금액 × (수수료율/100) × 1.10 (부가세 포함)
             BigDecimal productCommission = totalAmount
                     .multiply(commissionRate)
@@ -529,6 +858,147 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
         } catch (Exception e) {
             log.warn("Failed to calculate expected settlement, returning null: {}", e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * 쿠팡 카테고리 목록 조회
+     * 전체 디스플레이 카테고리 목록을 조회하여 계층 구조로 반환
+     *
+     * @param credential 마켓플레이스 인증 정보
+     * @return 카테고리 목록
+     */
+    public List<CoupangCategoryDto> collectCategories(TenantMarketplaceCredential credential) {
+        log.info("Collecting Coupang categories for vendor {}", credential.getSellerId());
+
+        String accessKey = credential.getClientId().trim();
+        String secretKey = credential.getClientSecret().trim();
+        String vendorId = credential.getSellerId().trim();
+
+        List<CoupangCategoryDto> allCategories = new ArrayList<>();
+
+        try {
+            String responseBody = executeCategoryRequest(accessKey, secretKey);
+            log.debug("Coupang category API response: {}", responseBody.substring(0, Math.min(500, responseBody.length())));
+
+            JsonNode root = objectMapper.readTree(responseBody);
+
+            String codeStr = root.path("code").asText("");
+            if (!"SUCCESS".equals(codeStr)) {
+                String message = root.path("message").asText("Unknown error");
+                log.error("Coupang category API error: {} - {}", codeStr, message);
+                throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                        "쿠팡 카테고리 조회 실패: " + message);
+            }
+
+            JsonNode data = root.path("data");
+            // data는 단일 ROOT 객체이고, 하위 카테고리는 child 배열에 있음
+            JsonNode children = data.path("child");
+            if (children.isArray()) {
+                // 1차 카테고리 (대분류) 파싱
+                for (JsonNode categoryNode : children) {
+                    parseCategoryRecursive(categoryNode, null, null, 1, allCategories);
+                }
+            }
+
+            log.info("Total collected {} Coupang categories for vendor {}", allCategories.size(), vendorId);
+            return allCategories;
+
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error collecting Coupang categories", e);
+            throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                    "쿠팡 카테고리 조회 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 카테고리 재귀 파싱 (계층 구조)
+     * 쿠팡 API 응답 필드: displayItemCategoryCode, name, child
+     */
+    private void parseCategoryRecursive(JsonNode node, Long parentCode, Long rootCode, int depth,
+                                         List<CoupangCategoryDto> result) {
+        Long displayCategoryCode = node.path("displayItemCategoryCode").asLong(0);
+        String displayCategoryName = node.path("name").asText(null);
+
+        if (displayCategoryCode == 0) {
+            return;
+        }
+
+        // 대분류(depth=1)의 경우 자기 자신이 rootCode
+        Long currentRootCode = (depth == 1) ? displayCategoryCode : rootCode;
+        String rootCategoryName = (depth == 1) ? displayCategoryName : null;
+
+        CoupangCategoryDto dto = CoupangCategoryDto.builder()
+                .displayCategoryCode(displayCategoryCode)
+                .displayCategoryName(displayCategoryName)
+                .parentCategoryCode(parentCode)
+                .depthLevel(depth)
+                .rootCategoryCode(currentRootCode)
+                .rootCategoryName(rootCategoryName)
+                .build();
+
+        result.add(dto);
+
+        // 하위 카테고리 파싱 (child 배열)
+        JsonNode children = node.path("child");
+        if (children.isArray() && children.size() > 0) {
+            for (JsonNode childNode : children) {
+                parseCategoryRecursive(childNode, displayCategoryCode, currentRootCode, depth + 1, result);
+            }
+        }
+    }
+
+    /**
+     * 쿠팡 카테고리 목록 조회 API 호출
+     */
+    private String executeCategoryRequest(String accessKey, String secretKey) throws Exception {
+        CloseableHttpClient client = null;
+        try {
+            client = HttpClients.createDefault();
+
+            String method = "GET";
+            String path = "/v2/providers/seller_api/apis/api/v1/marketplace/meta/display-categories";
+
+            URIBuilder uriBuilder = new URIBuilder().setPath(path);
+
+            String fullPath = uriBuilder.build().toString();
+            int qIdx = fullPath.indexOf('?');
+            String pathOnly = qIdx >= 0 ? fullPath.substring(0, qIdx) : fullPath;
+            String queryString = qIdx >= 0 ? fullPath.substring(qIdx + 1) : "";
+
+            String datetime = DateTimeFormatter.ofPattern("yyMMdd'T'HHmmss'Z'")
+                    .format(LocalDateTime.now(ZoneOffset.UTC));
+            String message = datetime + method + pathOnly + queryString;
+            String signature = generateHmacSignature(secretKey, message);
+            String authorization = "CEA algorithm=HmacSHA256, access-key=" + accessKey
+                    + ", signed-date=" + datetime + ", signature=" + signature;
+
+            uriBuilder.setScheme(SCHEMA).setHost(HOST).setPort(PORT);
+            HttpGet get = new HttpGet(uriBuilder.build().toString());
+            get.addHeader("Authorization", authorization);
+            get.addHeader("content-type", "application/json");
+
+            try (CloseableHttpResponse response = client.execute(get)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+                String responseBody = response.getEntity() != null
+                        ? EntityUtils.toString(response.getEntity()) : "";
+
+                if (statusCode == 401 || statusCode == 403) {
+                    throw new BusinessException(ErrorCodes.MARKETPLACE_AUTH_FAILED,
+                            "쿠팡 인증 실패: API 키를 확인해주세요.");
+                }
+
+                return responseBody;
+            }
+        } finally {
+            if (client != null) {
+                try {
+                    client.close();
+                } catch (Exception ignored) {
+                }
+            }
         }
     }
 }

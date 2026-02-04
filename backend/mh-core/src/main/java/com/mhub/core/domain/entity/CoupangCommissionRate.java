@@ -32,6 +32,9 @@ public class CoupangCommissionRate {
     @Column(name = "effective_to")
     private LocalDate effectiveTo;
 
+    @Column(name = "display_category_code")
+    private Long displayCategoryCode;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

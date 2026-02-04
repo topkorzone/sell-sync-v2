@@ -83,6 +83,8 @@ export interface OrderItem {
   erpItemId?: string | null;
   erpProdCd?: string | null;
   hasMasterMapping?: boolean;
+  commissionRate?: number | null;
+  expectedSettlementAmount?: number | null;
 }
 
 export interface Shipment {
@@ -304,4 +306,33 @@ export interface OrderItemRow {
   orderIndex: number;          // 주문 순서 (그룹 배경색용)
   order: Order;
   item: OrderItem;
+}
+
+export interface CoupangSellerProduct {
+  id: string;
+  tenantId: string;
+  sellerProductId: number;
+  sellerProductName: string | null;
+  displayCategoryCode: number | null;
+  categoryId: number | null;
+  productId: number | null;
+  vendorId: string | null;
+  saleStartedAt: string | null;
+  saleEndedAt: string | null;
+  brand: string | null;
+  statusName: string | null;
+  syncedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CoupangSellerProductSyncResponse {
+  success: boolean;
+  totalCount: number;
+  insertedCount: number;
+  updatedCount: number;
+  syncStartedAt: string;
+  syncCompletedAt: string;
+  durationMs: number;
+  errorMessage: string | null;
 }

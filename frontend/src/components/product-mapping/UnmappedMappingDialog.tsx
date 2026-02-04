@@ -73,8 +73,9 @@ export default function UnmappedMappingDialog({
     }
 
     setSaving(true);
+    console.log("[DEBUG] Starting mapping save...");
     try {
-      await api.post("/api/v1/product-mappings", {
+      const response = await api.post("/api/v1/product-mappings", {
         marketplaceType: product.marketplaceType,
         marketplaceProductId: product.marketplaceProductId,
         marketplaceSku: product.marketplaceSku || null,
@@ -83,12 +84,15 @@ export default function UnmappedMappingDialog({
         erpItemId: selectedErpItem.id || null,
         erpProdCd: selectedErpItem.prodCd,
       });
+      console.log("[DEBUG] Mapping save response:", response);
       toast.success("매핑이 등록되었습니다.");
       onOpenChange(false);
       onSave();
-    } catch {
+    } catch (error) {
+      console.error("[DEBUG] Mapping save error:", error);
       toast.error("매핑 저장에 실패했습니다.");
     } finally {
+      console.log("[DEBUG] Mapping save finished, setting saving to false");
       setSaving(false);
     }
   };

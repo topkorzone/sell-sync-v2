@@ -43,6 +43,11 @@ public interface ProductMappingRepository extends JpaRepository<ProductMapping, 
     Page<ProductMapping> findByTenantId(UUID tenantId, Pageable pageable);
 
     /**
+     * 테넌트의 완료된 매핑만 조회 (erp_prod_cd가 있는 것만, 페이징)
+     */
+    Page<ProductMapping> findByTenantIdAndErpProdCdIsNotNull(UUID tenantId, Pageable pageable);
+
+    /**
      * 테넌트 + 마켓플레이스 타입별 매핑 조회 (페이징)
      */
     Page<ProductMapping> findByTenantIdAndMarketplaceType(
@@ -51,9 +56,18 @@ public interface ProductMappingRepository extends JpaRepository<ProductMapping, 
             Pageable pageable);
 
     /**
-     * 키워드 검색 (상품명, 옵션명, ERP 품목코드)
+     * 테넌트 + 마켓플레이스 타입별 완료된 매핑만 조회 (erp_prod_cd가 있는 것만, 페이징)
+     */
+    Page<ProductMapping> findByTenantIdAndMarketplaceTypeAndErpProdCdIsNotNull(
+            UUID tenantId,
+            MarketplaceType marketplaceType,
+            Pageable pageable);
+
+    /**
+     * 키워드 검색 (상품명, 옵션명, ERP 품목코드) - 완료된 매핑만
      */
     @Query("SELECT pm FROM ProductMapping pm WHERE pm.tenantId = :tenantId " +
+           "AND pm.erpProdCd IS NOT NULL " +
            "AND (LOWER(pm.marketplaceProductName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(pm.marketplaceOptionName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(pm.erpProdCd) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
@@ -64,10 +78,11 @@ public interface ProductMappingRepository extends JpaRepository<ProductMapping, 
             Pageable pageable);
 
     /**
-     * 마켓플레이스 타입 + 키워드 검색
+     * 마켓플레이스 타입 + 키워드 검색 - 완료된 매핑만
      */
     @Query("SELECT pm FROM ProductMapping pm WHERE pm.tenantId = :tenantId " +
            "AND pm.marketplaceType = :marketplaceType " +
+           "AND pm.erpProdCd IS NOT NULL " +
            "AND (LOWER(pm.marketplaceProductName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(pm.marketplaceOptionName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(pm.erpProdCd) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
@@ -87,6 +102,11 @@ public interface ProductMappingRepository extends JpaRepository<ProductMapping, 
      * 테넌트의 매핑 수 조회
      */
     long countByTenantId(UUID tenantId);
+
+    /**
+     * 테넌트의 완료된 매핑 수 조회 (erp_prod_cd가 있는 것만)
+     */
+    long countByTenantIdAndErpProdCdIsNotNull(UUID tenantId);
 
     /**
      * ID와 테넌트로 매핑 조회 (소유권 확인용)

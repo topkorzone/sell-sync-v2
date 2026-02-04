@@ -10,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
 import Orders from "@/pages/Orders";
 import ProductMappings from "@/pages/ProductMappings";
+import CoupangProducts from "@/pages/CoupangProducts";
 import Shipments from "@/pages/Shipments";
 import Settlements from "@/pages/Settlements";
 import Settings from "@/pages/Settings";
@@ -71,6 +72,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/product-mappings" element={<ProductMappings />} />
+          <Route path="/coupang-products" element={<CoupangProducts />} />
           <Route path="/shipments" element={<Shipments />} />
           <Route path="/settlements" element={<Settlements />} />
           <Route path="/settings" element={<Settings />} />

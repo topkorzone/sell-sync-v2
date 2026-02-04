@@ -21,6 +21,8 @@ public class OrderItemResponse {
     private UUID erpItemId;
     private String erpProdCd;
     private Boolean hasMasterMapping;
+    private BigDecimal commissionRate;
+    private BigDecimal expectedSettlementAmount;
 
     public static OrderItemResponse from(OrderItem item) {
         return from(item, null, null);
@@ -45,6 +47,8 @@ public class OrderItemResponse {
                 .erpItemId(item.getErpItemId())
                 .erpProdCd(effectiveErpProdCd)
                 .hasMasterMapping(hasMasterMapping != null ? hasMasterMapping : (item.getErpProdCd() != null && !item.getErpProdCd().isEmpty()))
+                .commissionRate(item.getCommissionRate())
+                .expectedSettlementAmount(item.getExpectedSettlementAmount())
                 .build();
     }
 }

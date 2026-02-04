@@ -47,6 +47,51 @@ public class OrderResponse {
      * @param mappingMap productId:sku -> ProductMapping 맵
      */
     public static OrderResponse from(Order order, boolean includeItems, Map<String, ProductMapping> mappingMap) {
+        // 1. items를 먼저 빌드
+        List<OrderItemResponse> itemResponses = null;
+        BigDecimal calculatedSettlementAmount = null;
+
+        if (includeItems && order.getItems() != null) {
+            itemResponses = order.getItems().stream()
+                    .map(item -> {
+                        if (mappingMap != null) {
+                            String key = buildMappingKey(item.getMarketplaceProductId(), item.getMarketplaceSku());
+                            ProductMapping mapping = mappingMap.get(key);
+                            // SKU 매핑이 없으면 상품 레벨 매핑 확인
+                            if (mapping == null) {
+                                String productLevelKey = buildMappingKey(item.getMarketplaceProductId(), null);
+                                mapping = mappingMap.get(productLevelKey);
+                            }
+                            if (mapping != null) {
+                                // erp_prod_cd가 설정된 경우에만 hasMasterMapping = true
+                                String masterErpProdCd = mapping.getErpProdCd();
+                                boolean hasMasterMapping = masterErpProdCd != null && !masterErpProdCd.isEmpty();
+                                return OrderItemResponse.from(item, hasMasterMapping, masterErpProdCd);
+                            }
+                        }
+                        return OrderItemResponse.from(item);
+                    })
+                    .toList();
+
+            // 2. items의 expectedSettlementAmount 합산 (쿠팡인 경우)
+            if (order.getMarketplaceType() == MarketplaceType.COUPANG) {
+                calculatedSettlementAmount = itemResponses.stream()
+                        .map(OrderItemResponse::getExpectedSettlementAmount)
+                        .filter(amount -> amount != null)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                // 합산 값이 0이면 null로 처리
+                if (calculatedSettlementAmount.compareTo(BigDecimal.ZERO) == 0) {
+                    calculatedSettlementAmount = null;
+                }
+            }
+        }
+
+        // 3. 정산예정금: 계산된 값 > Order 자체 값 순으로 사용
+        BigDecimal finalSettlementAmount = calculatedSettlementAmount != null
+                ? calculatedSettlementAmount
+                : order.getExpectedSettlementAmount();
+
         OrderResponseBuilder builder = OrderResponse.builder()
                 .id(order.getId())
                 .tenantId(order.getTenantId())
@@ -63,31 +108,12 @@ public class OrderResponse {
                 .receiverZipcode(order.getReceiverZipcode())
                 .totalAmount(order.getTotalAmount())
                 .deliveryFee(order.getDeliveryFee())
-                .expectedSettlementAmount(order.getExpectedSettlementAmount())
+                .expectedSettlementAmount(finalSettlementAmount)
                 .orderedAt(order.getOrderedAt())
                 .erpSynced(order.getErpSynced())
                 .createdAt(order.getCreatedAt())
-                .updatedAt(order.getUpdatedAt());
-
-        if (includeItems && order.getItems() != null) {
-            builder.items(order.getItems().stream()
-                    .map(item -> {
-                        if (mappingMap != null) {
-                            String key = buildMappingKey(item.getMarketplaceProductId(), item.getMarketplaceSku());
-                            ProductMapping mapping = mappingMap.get(key);
-                            // SKU 매핑이 없으면 상품 레벨 매핑 확인
-                            if (mapping == null) {
-                                String productLevelKey = buildMappingKey(item.getMarketplaceProductId(), null);
-                                mapping = mappingMap.get(productLevelKey);
-                            }
-                            if (mapping != null) {
-                                return OrderItemResponse.from(item, true, mapping.getErpProdCd());
-                            }
-                        }
-                        return OrderItemResponse.from(item);
-                    })
-                    .toList());
-        }
+                .updatedAt(order.getUpdatedAt())
+                .items(itemResponses);
 
         return builder.build();
     }

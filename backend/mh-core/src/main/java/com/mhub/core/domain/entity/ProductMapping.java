@@ -34,7 +34,7 @@ public class ProductMapping extends BaseEntity {
     @Column(name = "erp_item_id")
     private UUID erpItemId;
 
-    @Column(name = "erp_prod_cd", nullable = false, length = 100)
+    @Column(name = "erp_prod_cd", length = 100)
     private String erpProdCd;
 
     @Column(name = "auto_created", nullable = false)

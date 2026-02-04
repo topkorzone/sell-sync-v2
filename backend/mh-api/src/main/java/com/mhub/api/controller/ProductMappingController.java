@@ -62,7 +62,12 @@ public class ProductMappingController {
     @PostMapping
     public ApiResponse<ProductMappingResponse> createOrUpdateMapping(
             @RequestBody ProductMappingRequest request) {
-        return ApiResponse.ok(productMappingService.createOrUpdateMapping(request));
+        log.info("[DEBUG] API called - createOrUpdateMapping: marketplaceType={}, productId={}, sku={}, erpProdCd={}",
+                request.getMarketplaceType(), request.getMarketplaceProductId(),
+                request.getMarketplaceSku(), request.getErpProdCd());
+        ProductMappingResponse response = productMappingService.createOrUpdateMapping(request);
+        log.info("[DEBUG] API response - createOrUpdateMapping completed: id={}", response.getId());
+        return ApiResponse.ok(response);
     }
 
     @Operation(summary = "상품 매핑 삭제")
