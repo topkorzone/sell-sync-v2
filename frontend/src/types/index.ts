@@ -211,6 +211,45 @@ export interface CourierConfig {
   createdAt: string;
 }
 
+export interface CourierConfigResponse {
+  id: string;
+  courierType: CourierType;
+  contractCode: string;
+  senderName: string;
+  senderPhone: string;
+  senderAddress: string;
+  senderZipcode: string;
+  active: boolean;
+  hasApiKey: boolean;
+  extraConfig: Record<string, string> | null;
+  createdAt: string;
+}
+
+export interface CourierConfigRequest {
+  courierType: CourierType;
+  apiKey: string;
+  contractCode: string;
+  senderName: string;
+  senderPhone: string;
+  senderAddress: string;
+  senderZipcode: string;
+  extraConfig: Record<string, string>;
+}
+
+export interface BulkBookingResult {
+  total: number;
+  successCount: number;
+  failCount: number;
+  results: BookingItemResult[];
+}
+
+export interface BookingItemResult {
+  orderId: string;
+  success: boolean;
+  trackingNumber: string | null;
+  error: string | null;
+}
+
 export type ErpType = 'ICOUNT' | 'ECOUNT';
 
 export interface ErpConfig {

@@ -1,7 +1,10 @@
 package com.mhub.api.controller;
 
 import com.mhub.common.dto.ApiResponse;
+import com.mhub.common.exception.BusinessException;
+import com.mhub.common.exception.ErrorCodes;
 import com.mhub.core.domain.entity.TenantCourierConfig;
+import com.mhub.core.domain.enums.CourierType;
 import com.mhub.core.domain.repository.TenantCourierConfigRepository;
 import com.mhub.core.erp.dto.ErpConfigRequest;
 import com.mhub.core.erp.dto.ErpConfigResponse;
@@ -25,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Tag(name = "Settings")
@@ -85,9 +89,104 @@ public class SettingsController {
         return ApiResponse.ok(marketplaceCredentialService.testConnectionById(id));
     }
 
+    // ===================== Courier Endpoints =====================
+
+    @Operation(summary = "택배사 설정 목록 조회")
     @GetMapping("/couriers")
-    public ApiResponse<List<TenantCourierConfig>> getCouriers() {
-        return ApiResponse.ok(courierRepo.findByTenantIdAndActiveTrue(TenantContext.requireTenantId()));
+    public ApiResponse<List<CourierConfigResponse>> getCouriers() {
+        UUID tenantId = TenantContext.requireTenantId();
+        List<CourierConfigResponse> list = courierRepo.findByTenantIdAndActiveTrue(tenantId).stream()
+                .map(CourierConfigResponse::from)
+                .toList();
+        return ApiResponse.ok(list);
+    }
+
+    @Operation(summary = "택배사 설정 생성")
+    @PostMapping("/couriers")
+    public ApiResponse<CourierConfigResponse> createCourier(@RequestBody CourierConfigRequest req) {
+        UUID tenantId = TenantContext.requireTenantId();
+        TenantCourierConfig config = TenantCourierConfig.builder()
+                .tenantId(tenantId)
+                .courierType(req.courierType())
+                .apiKey(req.apiKey())
+                .contractCode(req.contractCode())
+                .senderName(req.senderName())
+                .senderPhone(req.senderPhone())
+                .senderAddress(req.senderAddress())
+                .senderZipcode(req.senderZipcode())
+                .extraConfig(req.extraConfig())
+                .active(true)
+                .build();
+        courierRepo.save(config);
+        return ApiResponse.ok(CourierConfigResponse.from(config));
+    }
+
+    @Operation(summary = "택배사 설정 수정")
+    @PutMapping("/couriers/{id}")
+    public ApiResponse<CourierConfigResponse> updateCourier(@PathVariable UUID id, @RequestBody CourierConfigRequest req) {
+        UUID tenantId = TenantContext.requireTenantId();
+        TenantCourierConfig config = courierRepo.findById(id)
+                .filter(c -> c.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new BusinessException(ErrorCodes.SHIPPING_COURIER_API_ERROR, "Config not found"));
+        if (req.apiKey() != null && !req.apiKey().isBlank()) {
+            config.setApiKey(req.apiKey());
+        }
+        config.setContractCode(req.contractCode());
+        config.setSenderName(req.senderName());
+        config.setSenderPhone(req.senderPhone());
+        config.setSenderAddress(req.senderAddress());
+        config.setSenderZipcode(req.senderZipcode());
+        if (req.extraConfig() != null) {
+            config.setExtraConfig(req.extraConfig());
+        }
+        courierRepo.save(config);
+        return ApiResponse.ok(CourierConfigResponse.from(config));
+    }
+
+    @Operation(summary = "택배사 설정 삭제")
+    @DeleteMapping("/couriers/{id}")
+    public ApiResponse<Void> deleteCourier(@PathVariable UUID id) {
+        UUID tenantId = TenantContext.requireTenantId();
+        TenantCourierConfig config = courierRepo.findById(id)
+                .filter(c -> c.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new BusinessException(ErrorCodes.SHIPPING_COURIER_API_ERROR, "Config not found"));
+        courierRepo.delete(config);
+        return ApiResponse.ok();
+    }
+
+    record CourierConfigRequest(
+            CourierType courierType,
+            String apiKey,
+            String contractCode,
+            String senderName,
+            String senderPhone,
+            String senderAddress,
+            String senderZipcode,
+            Map<String, Object> extraConfig
+    ) {}
+
+    record CourierConfigResponse(
+            UUID id,
+            CourierType courierType,
+            String contractCode,
+            String senderName,
+            String senderPhone,
+            String senderAddress,
+            String senderZipcode,
+            boolean active,
+            boolean hasApiKey,
+            Map<String, Object> extraConfig,
+            String createdAt
+    ) {
+        static CourierConfigResponse from(TenantCourierConfig c) {
+            return new CourierConfigResponse(
+                    c.getId(), c.getCourierType(), c.getContractCode(),
+                    c.getSenderName(), c.getSenderPhone(), c.getSenderAddress(), c.getSenderZipcode(),
+                    c.getActive(), c.getApiKey() != null && !c.getApiKey().isBlank(),
+                    c.getExtraConfig(),
+                    c.getCreatedAt() != null ? c.getCreatedAt().toString() : null
+            );
+        }
     }
 
     // ===================== ERP Endpoints =====================

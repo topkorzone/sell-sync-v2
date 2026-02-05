@@ -48,8 +48,18 @@ spring:
       port: ${REDIS_PORT:6379}
       timeout: 3000
 
+  task:
+    scheduling:
+      pool:
+        size: 5
+
   lifecycle:
     timeout-per-shutdown-phase: 30s
+
+# CJ API
+cj:
+  api:
+    base-url: ${CJ_API_BASE_URL:https://dxapi-dev.cjlogistics.com:5054}
 
 # Encryption & Supabase
 mhub:

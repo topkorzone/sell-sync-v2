@@ -45,6 +45,7 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
             Map.entry("PURCHASE_DECIDED", OrderStatus.PURCHASE_CONFIRMED),
             Map.entry("EXCHANGED", OrderStatus.EXCHANGED),
             Map.entry("CANCELLED", OrderStatus.CANCELLED),
+            Map.entry("CANCELED", OrderStatus.CANCELLED),  // 네이버 API 실제 응답값
             Map.entry("RETURNED", OrderStatus.RETURNED)
     );
 
@@ -358,7 +359,10 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
                     .bodyToMono(String.class)
                     .block();
 
-            return parseOrderStatusesResponse(response);
+            log.debug("Naver order status query response: {}", response);
+            List<OrderStatusInfo> result = parseOrderStatusesResponse(response);
+            log.info("Naver order status query returned {} statuses", result.size());
+            return result;
 
         } catch (WebClientResponseException e) {
             log.error("Naver order status query failed: {} {}", e.getStatusCode(), e.getResponseBodyAsString());
@@ -380,8 +384,8 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
 
             if (data.isArray()) {
                 for (JsonNode item : data) {
-                    String productOrderId = item.path("productOrderId").asText(null);
                     JsonNode productOrder = item.path("productOrder");
+                    String productOrderId = productOrder.path("productOrderId").asText(null);
                     String marketplaceStatus = productOrder.path("productOrderStatus").asText(null);
 
                     if (productOrderId != null && marketplaceStatus != null) {

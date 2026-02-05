@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Store, Truck, Server } from "lucide-react";
 import StoreList from "@/components/settings/StoreList";
+import CourierList from "@/components/settings/CourierList";
 import ErpList from "@/components/settings/ErpList";
 
 export default function Settings() {
@@ -39,10 +40,7 @@ export default function Settings() {
               <CardTitle className="sr-only">택배사 설정</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <Truck className="mb-3 h-10 w-10" />
-                <p>택배사 설정이 곧 추가됩니다.</p>
-              </div>
+              <CourierList />
             </CardContent>
           </Card>
         </TabsContent>

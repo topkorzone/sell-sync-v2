@@ -46,10 +46,17 @@ public class OrderController {
     @GetMapping
     public ApiResponse<PageResponse<OrderResponse>> listOrders(
             @RequestParam(required = false) OrderStatus status,
+            @RequestParam(required = false) List<OrderStatus> statuses,
             @RequestParam(required = false) MarketplaceType marketplace,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Page<OrderResponse> orders = orderService.getOrders(status, marketplace,
+        List<OrderStatus> statusList = null;
+        if (statuses != null && !statuses.isEmpty()) {
+            statusList = statuses;
+        } else if (status != null) {
+            statusList = List.of(status);
+        }
+        Page<OrderResponse> orders = orderService.getOrders(statusList, marketplace,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderedAt")));
         return ApiResponse.ok(PageResponse.of(orders.getContent(), orders.getNumber(),
                 orders.getSize(), orders.getTotalElements()));
@@ -166,6 +173,60 @@ public class OrderController {
         result.put("status", synced >= 0 ? "SUCCESS" : "RATE_LIMITED");
         result.put("from", from.toString());
         result.put("to", to.toString());
+
+        return ApiResponse.ok(result);
+    }
+
+    @Operation(summary = "Trigger order status update for all marketplaces",
+            description = "DB의 미완료 주문(최근 7일)에 대해 마켓플레이스 API로 현재 상태를 조회하고 변경된 주문을 업데이트합니다. 쿠팡의 경우 반품/취소 상태도 함께 조회합니다.")
+    @PostMapping("/status-update")
+    public ApiResponse<Map<String, Object>> updateOrderStatuses() {
+        UUID tenantId = TenantContext.requireTenantId();
+        List<TenantMarketplaceCredential> credentials =
+                credentialRepository.findByTenantIdAndActiveTrue(tenantId);
+
+        Map<String, Object> results = new LinkedHashMap<>();
+        int totalUpdated = 0;
+
+        for (TenantMarketplaceCredential credential : credentials) {
+            try {
+                int updated = orderSyncService.updateOrderStatuses(credential);
+                results.put(credential.getMarketplaceType().name(), Map.of(
+                        "updated", updated,
+                        "status", "SUCCESS"
+                ));
+                totalUpdated += updated;
+            } catch (Exception e) {
+                log.error("Status update failed for {}: {}", credential.getMarketplaceType(), e.getMessage());
+                results.put(credential.getMarketplaceType().name(), Map.of(
+                        "updated", 0,
+                        "status", "FAILED",
+                        "error", e.getMessage()
+                ));
+            }
+        }
+
+        results.put("totalUpdated", totalUpdated);
+        return ApiResponse.ok(results);
+    }
+
+    @Operation(summary = "Trigger order status update for specific marketplace",
+            description = "특정 마켓플레이스의 미완료 주문(최근 7일) 상태를 업데이트합니다. 쿠팡의 경우 반품/취소 상태도 함께 조회합니다.")
+    @PostMapping("/status-update/{marketplace}")
+    public ApiResponse<Map<String, Object>> updateMarketplaceOrderStatuses(
+            @PathVariable MarketplaceType marketplace) {
+        UUID tenantId = TenantContext.requireTenantId();
+        TenantMarketplaceCredential credential =
+                credentialRepository.findByTenantIdAndMarketplaceTypeAndActiveTrue(tenantId, marketplace)
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "No active credential found for " + marketplace));
+
+        int updated = orderSyncService.updateOrderStatuses(credential);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("marketplace", marketplace.name());
+        result.put("updated", updated);
+        result.put("status", "SUCCESS");
 
         return ApiResponse.ok(result);
     }

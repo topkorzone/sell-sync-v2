@@ -19,8 +19,10 @@ import java.util.UUID;
 public interface OrderRepository extends JpaRepository<Order, UUID> {
     Page<Order> findByTenantId(UUID tenantId, Pageable pageable);
     Page<Order> findByTenantIdAndStatus(UUID tenantId, OrderStatus status, Pageable pageable);
+    Page<Order> findByTenantIdAndStatusIn(UUID tenantId, List<OrderStatus> statuses, Pageable pageable);
     Page<Order> findByTenantIdAndMarketplaceType(UUID tenantId, MarketplaceType marketplaceType, Pageable pageable);
     Page<Order> findByTenantIdAndStatusAndMarketplaceType(UUID tenantId, OrderStatus status, MarketplaceType marketplaceType, Pageable pageable);
+    Page<Order> findByTenantIdAndStatusInAndMarketplaceType(UUID tenantId, List<OrderStatus> statuses, MarketplaceType marketplaceType, Pageable pageable);
     Optional<Order> findByTenantIdAndMarketplaceTypeAndMarketplaceOrderIdAndMarketplaceProductOrderId(UUID tenantId, MarketplaceType marketplaceType, String marketplaceOrderId, String marketplaceProductOrderId);
     @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId AND o.erpSynced = false")
     long countUnsynced(@Param("tenantId") UUID tenantId);

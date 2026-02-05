@@ -5,7 +5,7 @@ import com.mhub.core.domain.entity.JobExecutionLog;
 import com.mhub.core.domain.entity.TenantMarketplaceCredential;
 import com.mhub.core.domain.repository.JobExecutionLogRepository;
 import com.mhub.core.domain.repository.TenantMarketplaceCredentialRepository;
-import com.mhub.core.tenant.TenantContext;
+import com.mhub.core.tenant.SchedulerTenantHelper;
 import com.mhub.marketplace.service.OrderSyncService;
 import com.mhub.marketplace.service.SettlementSyncService;
 import io.awspring.cloud.sqs.annotation.SqsListener;
@@ -25,6 +25,7 @@ public class OrderSyncWorker {
     private final TenantMarketplaceCredentialRepository credentialRepository;
     private final JobExecutionLogRepository jobLogRepository;
     private final ObjectMapper objectMapper;
+    private final SchedulerTenantHelper schedulerTenantHelper;
 
     @SqsListener(value = "${mhub.aws.sqs.order-sync-queue:order-sync-queue}", maxConcurrentMessages = "20")
     public void processOrderSync(String messageBody) {
@@ -55,7 +56,7 @@ public class OrderSyncWorker {
                 .build();
 
         try {
-            TenantContext.setTenantId(tenantId);
+            schedulerTenantHelper.setTenant(tenantId);
             TenantMarketplaceCredential cred = credentialRepository.findById(credentialId)
                     .orElseThrow(() -> new IllegalStateException("Credential not found: " + credentialId));
 
@@ -93,7 +94,7 @@ public class OrderSyncWorker {
         } finally {
             jobLog.setFinishedAt(LocalDateTime.now());
             jobLogRepository.save(jobLog);
-            TenantContext.clear();
+            schedulerTenantHelper.clearTenant();
         }
     }
 }

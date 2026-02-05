@@ -6,7 +6,7 @@ import com.mhub.core.domain.entity.TenantMarketplaceCredential;
 import com.mhub.core.domain.repository.JobExecutionLogRepository;
 import com.mhub.core.domain.repository.TenantMarketplaceCredentialRepository;
 import com.mhub.core.domain.repository.TenantRepository;
-import com.mhub.core.tenant.TenantContext;
+import com.mhub.core.tenant.SchedulerTenantHelper;
 import com.mhub.marketplace.service.OrderSyncService;
 import com.mhub.marketplace.service.SettlementSyncService;
 import com.mhub.scheduler.worker.SyncType;
@@ -37,25 +37,28 @@ public class LocalOrderSyncScheduler {
     private final OrderSyncService orderSyncService;
     private final SettlementSyncService settlementSyncService;
     private final JobExecutionLogRepository jobLogRepository;
+    private final SchedulerTenantHelper schedulerTenantHelper;
 
     /**
-     * 신규 주문 수집 (매 1시간 정각)
+     * 매시간 정각: 신규 주문 수집 → 상태 업데이트 (순차 실행)
+     * 신규 주문이 먼저 수집된 후 상태 업데이트를 수행한다.
      */
     @Scheduled(cron = "0 0 * * * *")
-    @SchedulerLock(name = "localNewOrderCollection", lockAtMostFor = "PT55M", lockAtLeastFor = "PT5M")
-    public void scheduleNewOrderCollection() {
-        log.info("[LOCAL] Starting new order collection");
+    @SchedulerLock(name = "localHourlySync", lockAtMostFor = "PT55M", lockAtLeastFor = "PT5M")
+    public void scheduleHourlySync() {
+        log.info("[LOCAL] Starting hourly sync (new orders + status update)");
         executeSyncForAllCredentials(SyncType.NEW_ORDERS);
+        executeSyncForAllCredentials(SyncType.STATUS_UPDATE);
     }
 
     /**
-     * 상태 업데이트 (4시간마다 30분)
+     * 매시간 30분: 신규 주문 수집만
      */
-    @Scheduled(cron = "0 30 0,4,8,12,16,20 * * *")
-    @SchedulerLock(name = "localStatusUpdate", lockAtMostFor = "PT3H50M", lockAtLeastFor = "PT10M")
-    public void scheduleStatusUpdate() {
-        log.info("[LOCAL] Starting status update");
-        executeSyncForAllCredentials(SyncType.STATUS_UPDATE);
+    @Scheduled(cron = "0 30 * * * *")
+    @SchedulerLock(name = "localNewOrderCollection", lockAtMostFor = "PT25M", lockAtLeastFor = "PT2M")
+    public void scheduleNewOrderCollection() {
+        log.info("[LOCAL] Starting new order collection");
+        executeSyncForAllCredentials(SyncType.NEW_ORDERS);
     }
 
     /**
@@ -108,7 +111,7 @@ public class LocalOrderSyncScheduler {
                 .build();
 
         try {
-            TenantContext.setTenantId(tenantId);
+            schedulerTenantHelper.setTenant(tenantId);
 
             int count;
             if (syncType == SyncType.NEW_ORDERS) {
@@ -139,11 +142,10 @@ public class LocalOrderSyncScheduler {
             jobLog.setErrorMessage(errorMsg != null
                     ? errorMsg.substring(0, Math.min(errorMsg.length(), 2000))
                     : "Unknown error");
-            throw e;
         } finally {
             jobLog.setFinishedAt(LocalDateTime.now());
             jobLogRepository.save(jobLog);
-            TenantContext.clear();
+            schedulerTenantHelper.clearTenant();
         }
     }
 }

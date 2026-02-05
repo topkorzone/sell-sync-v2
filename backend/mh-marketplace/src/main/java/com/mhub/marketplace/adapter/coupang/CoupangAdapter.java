@@ -1156,6 +1156,158 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
     /**
      * 쿠팡 카테고리 목록 조회 API 호출
      */
+    /**
+     * 쿠팡 반품/취소 요청 조회 결과
+     */
+    public record CoupangReturnCancelInfo(
+            String orderId,
+            String shipmentBoxId,
+            String receiptType,    // RETURN or CANCEL
+            String receiptStatus   // RELEASE_STOP_UNCHECKED, RETURNS_UNCHECKED, RETURNS_COMPLETED 등
+    ) {}
+
+    /**
+     * 쿠팡 반품/취소 요청 목록 조회
+     *
+     * @param credential 마켓플레이스 인증 정보
+     * @param from 조회 시작 시간
+     * @param to 조회 종료 시간
+     * @param cancelType "RETURN" 또는 "CANCEL"
+     * @return 반품/취소 요청 정보 목록
+     */
+    public List<CoupangReturnCancelInfo> getReturnCancelRequests(
+            TenantMarketplaceCredential credential,
+            LocalDateTime from, LocalDateTime to,
+            String cancelType) {
+
+        String accessKey = credential.getClientId().trim();
+        String secretKey = credential.getClientSecret().trim();
+        String vendorId = credential.getSellerId().trim();
+
+        log.info("Collecting Coupang {} requests for vendor {} from {} to {}",
+                cancelType, vendorId, from, to);
+
+        List<CoupangReturnCancelInfo> results = new ArrayList<>();
+
+        try {
+            String responseBody = executeReturnRequestsApi(accessKey, secretKey, vendorId, from, to, cancelType);
+            log.debug("Coupang {} API response: {}", cancelType, responseBody);
+
+            JsonNode root = objectMapper.readTree(responseBody);
+
+            int code = root.path("code").asInt(-1);
+            if (code != 200) {
+                String message = root.path("message").asText("Unknown error");
+                log.error("Coupang {} API error: {} - {}", cancelType, code, message);
+                throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                        "쿠팡 " + cancelType + " 조회 실패: " + message);
+            }
+
+            JsonNode data = root.path("data");
+            if (data.isArray()) {
+                for (JsonNode returnRequest : data) {
+                    String orderId = String.valueOf(returnRequest.path("orderId").asLong());
+                    String receiptStatus = returnRequest.path("receiptStatus").asText(null);
+                    String receiptType = returnRequest.path("receiptType").asText(cancelType);
+
+                    // returnItems 배열에서 shipmentBoxId 추출
+                    JsonNode returnItems = returnRequest.path("returnItems");
+                    if (returnItems.isArray()) {
+                        for (JsonNode item : returnItems) {
+                            String shipmentBoxId = String.valueOf(item.path("shipmentBoxId").asLong());
+                            results.add(new CoupangReturnCancelInfo(
+                                    orderId, shipmentBoxId, receiptType, receiptStatus));
+                        }
+                    }
+                }
+            }
+
+            log.info("Collected {} Coupang {} requests for vendor {}", results.size(), cancelType, vendorId);
+            return results;
+
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error collecting Coupang {} requests for vendor {}", cancelType, vendorId, e);
+            throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                    "쿠팡 " + cancelType + " 조회 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 쿠팡 반품/취소 요청 API 호출
+     */
+    private String executeReturnRequestsApi(String accessKey, String secretKey, String vendorId,
+                                             LocalDateTime from, LocalDateTime to,
+                                             String cancelType) throws Exception {
+        CloseableHttpClient client = null;
+        try {
+            client = HttpClients.createDefault();
+
+            String method = "GET";
+            String path = "/v2/providers/openapi/apis/api/v6/vendors/" + vendorId + "/returnRequests";
+
+            DateTimeFormatter minuteFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+
+            URIBuilder uriBuilder = new URIBuilder()
+                    .setPath(path)
+                    .addParameter("searchType", "timeFrame")
+                    .addParameter("createdAtFrom", from.format(minuteFormatter))
+                    .addParameter("createdAtTo", to.format(minuteFormatter))
+                    .addParameter("cancelType", cancelType)
+                    .addParameter("maxPerPage", "50");
+
+            String fullPath = uriBuilder.build().toString();
+            int qIdx = fullPath.indexOf('?');
+            String pathOnly = qIdx >= 0 ? fullPath.substring(0, qIdx) : fullPath;
+            String queryString = qIdx >= 0 ? fullPath.substring(qIdx + 1) : "";
+
+            String datetime = DateTimeFormatter.ofPattern("yyMMdd'T'HHmmss'Z'")
+                    .format(LocalDateTime.now(ZoneOffset.UTC));
+            String message = datetime + method + pathOnly + queryString;
+            String signature = generateHmacSignature(secretKey, message);
+            String authorization = "CEA algorithm=HmacSHA256, access-key=" + accessKey
+                    + ", signed-date=" + datetime + ", signature=" + signature;
+
+            uriBuilder.setScheme(SCHEMA).setHost(HOST).setPort(PORT);
+            HttpGet get = new HttpGet(uriBuilder.build().toString());
+            get.addHeader("Authorization", authorization);
+            get.addHeader("content-type", "application/json");
+            get.addHeader("X-Requested-By", vendorId);
+
+            try (CloseableHttpResponse response = client.execute(get)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+                String responseBody = response.getEntity() != null
+                        ? EntityUtils.toString(response.getEntity()) : "";
+
+                if (statusCode == 401 || statusCode == 403) {
+                    throw new BusinessException(ErrorCodes.MARKETPLACE_AUTH_FAILED,
+                            "쿠팡 인증 실패: API 키를 확인해주세요.");
+                }
+
+                return responseBody;
+            }
+        } finally {
+            if (client != null) {
+                try {
+                    client.close();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
+    /**
+     * 쿠팡 반품/취소 receiptStatus → OrderStatus 매핑
+     */
+    public OrderStatus mapReturnCancelStatus(String receiptType, String receiptStatus) {
+        if ("CANCEL".equalsIgnoreCase(receiptType)) {
+            return OrderStatus.CANCELLED;
+        }
+        // RETURN: 모든 단계에서 RETURNED로 매핑
+        return OrderStatus.RETURNED;
+    }
+
     private String executeCategoryRequest(String accessKey, String secretKey) throws Exception {
         CloseableHttpClient client = null;
         try {

@@ -47,12 +47,18 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public Page<OrderResponse> getOrders(OrderStatus status, MarketplaceType marketplaceType, Pageable pageable) {
+        return getOrders(status != null ? List.of(status) : null, marketplaceType, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getOrders(List<OrderStatus> statuses, MarketplaceType marketplaceType, Pageable pageable) {
         UUID tenantId = TenantContext.requireTenantId();
         Page<Order> orders;
-        if (status != null && marketplaceType != null) {
-            orders = orderRepository.findByTenantIdAndStatusAndMarketplaceType(tenantId, status, marketplaceType, pageable);
-        } else if (status != null) {
-            orders = orderRepository.findByTenantIdAndStatus(tenantId, status, pageable);
+        boolean hasStatuses = statuses != null && !statuses.isEmpty();
+        if (hasStatuses && marketplaceType != null) {
+            orders = orderRepository.findByTenantIdAndStatusInAndMarketplaceType(tenantId, statuses, marketplaceType, pageable);
+        } else if (hasStatuses) {
+            orders = orderRepository.findByTenantIdAndStatusIn(tenantId, statuses, pageable);
         } else if (marketplaceType != null) {
             orders = orderRepository.findByTenantIdAndMarketplaceType(tenantId, marketplaceType, pageable);
         } else {

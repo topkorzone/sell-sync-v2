@@ -10,6 +10,7 @@ import com.mhub.core.domain.repository.OrderRepository;
 import com.mhub.core.service.ProductMappingService;
 import com.mhub.core.service.RateLimitService;
 import com.mhub.marketplace.adapter.MarketplaceAdapter;
+import com.mhub.marketplace.adapter.coupang.CoupangAdapter;
 import com.mhub.marketplace.adapter.dto.OrderStatusInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -186,9 +187,17 @@ public class OrderSyncService {
             List<String> batch = productOrderIds.subList(i, Math.min(i + 300, productOrderIds.size()));
             List<OrderStatusInfo> statuses = adapter.getOrderStatuses(credential, batch);
 
+            log.info("Naver API returned {} statuses for batch of {} orders", statuses.size(), batch.size());
+
             for (OrderStatusInfo info : statuses) {
                 Order order = orderMap.get(info.getProductOrderId());
-                if (order == null) continue;
+                if (order == null) {
+                    log.debug("Naver status info productOrderId={} not found in pending orders", info.getProductOrderId());
+                    continue;
+                }
+
+                log.debug("Naver order {} DB status={}, API status={} (marketplace={})",
+                        info.getProductOrderId(), order.getStatus(), info.getStatus(), info.getMarketplaceStatus());
 
                 // 상태가 변경되었는지 확인
                 if (info.getStatus() != null && !order.getStatus().equals(info.getStatus())) {
@@ -213,7 +222,8 @@ public class OrderSyncService {
 
     /**
      * 쿠팡 주문 상태 업데이트
-     * - collectOrders로 7일치 조회 후 DB 미완료 주문과 비교
+     * - collectOrders로 7일치 조회 후 DB 미완료 주문과 비교 (정상 배송 흐름)
+     * - returnRequests API로 반품/취소 상태 조회 후 업데이트
      */
     private int updateCoupangOrderStatuses(TenantMarketplaceCredential credential) {
         UUID tenantId = credential.getTenantId();
@@ -241,16 +251,11 @@ public class OrderSyncService {
         log.info("Found {} pending Coupang orders to check status: tenant={}",
                 pendingOrders.size(), tenantId);
 
-        // 3. 쿠팡 API로 7일치 주문 조회
+        // 3. 쿠팡 API로 7일치 주문 조회 (정상 배송 흐름)
         LocalDateTime from = since;
         LocalDateTime to = LocalDateTime.now();
         MarketplaceAdapter adapter = adapterFactory.getAdapter(mkt);
         List<Order> marketplaceOrders = adapter.collectOrders(credential, from, to);
-
-        if (marketplaceOrders.isEmpty()) {
-            log.info("No orders returned from Coupang API for comparison: tenant={}", tenantId);
-            return 0;
-        }
 
         // 4. shipmentBoxId(marketplaceProductOrderId)로 매핑
         Map<String, Order> marketplaceOrderMap = marketplaceOrders.stream()
@@ -261,7 +266,7 @@ public class OrderSyncService {
                         (existing, replacement) -> replacement // 중복 시 최신 값 사용
                 ));
 
-        // 5. 상태 비교 및 업데이트
+        // 5. 정상 주문 상태 비교 및 업데이트
         int updatedCount = 0;
         for (Order dbOrder : pendingOrders) {
             String shipmentBoxId = dbOrder.getMarketplaceProductOrderId();
@@ -278,13 +283,101 @@ public class OrderSyncService {
                 log.debug("Coupang order {} status changed: {} -> {}",
                         shipmentBoxId, oldStatus, mktOrder.getStatus());
 
-                // 상태 변경 이벤트 발행
                 eventPublisher.publishEvent(new OrderStatusChangedEvent(
                         dbOrder.getId(), tenantId, oldStatus, mktOrder.getStatus(), "MARKETPLACE_SYNC"));
             }
         }
 
+        // --- 반품/취소 요청으로 상태 업데이트 ---
+        updatedCount += updateCoupangReturnCancelStatuses(credential, pendingOrders, from, to, tenantId);
+
         log.info("Updated {} Coupang order statuses: tenant={}", updatedCount, tenantId);
+        return updatedCount;
+    }
+
+    /**
+     * 쿠팡 반품/취소 요청 API를 조회하여 미완료 주문의 상태를 업데이트
+     */
+    private int updateCoupangReturnCancelStatuses(
+            TenantMarketplaceCredential credential,
+            List<Order> pendingOrders,
+            LocalDateTime from, LocalDateTime to,
+            UUID tenantId) {
+
+        CoupangAdapter coupangAdapter = (CoupangAdapter) adapterFactory.getAdapter(MarketplaceType.COUPANG);
+
+        // 미완료 주문을 shipmentBoxId로 매핑 (이미 정상 흐름에서 업데이트된 주문은 제외)
+        List<OrderStatus> finalStatuses = List.of(
+                OrderStatus.DELIVERED, OrderStatus.PURCHASE_CONFIRMED,
+                OrderStatus.CANCELLED, OrderStatus.RETURNED, OrderStatus.EXCHANGED);
+
+        Map<String, Order> pendingOrderMap = pendingOrders.stream()
+                .filter(o -> o.getMarketplaceProductOrderId() != null)
+                .filter(o -> !finalStatuses.contains(o.getStatus()))
+                .collect(Collectors.toMap(
+                        Order::getMarketplaceProductOrderId,
+                        Function.identity(),
+                        (existing, replacement) -> existing
+                ));
+
+        if (pendingOrderMap.isEmpty()) {
+            return 0;
+        }
+
+        int updatedCount = 0;
+
+        // 반품 요청 조회
+        try {
+            List<CoupangAdapter.CoupangReturnCancelInfo> returnRequests =
+                    coupangAdapter.getReturnCancelRequests(credential, from, to, "RETURN");
+            updatedCount += applyReturnCancelStatuses(returnRequests, pendingOrderMap, coupangAdapter, tenantId);
+        } catch (Exception e) {
+            log.warn("Failed to fetch Coupang RETURN requests: tenant={}, error={}", tenantId, e.getMessage());
+        }
+
+        // 취소 요청 조회
+        try {
+            List<CoupangAdapter.CoupangReturnCancelInfo> cancelRequests =
+                    coupangAdapter.getReturnCancelRequests(credential, from, to, "CANCEL");
+            updatedCount += applyReturnCancelStatuses(cancelRequests, pendingOrderMap, coupangAdapter, tenantId);
+        } catch (Exception e) {
+            log.warn("Failed to fetch Coupang CANCEL requests: tenant={}, error={}", tenantId, e.getMessage());
+        }
+
+        return updatedCount;
+    }
+
+    /**
+     * 반품/취소 조회 결과를 DB 주문에 적용
+     */
+    private int applyReturnCancelStatuses(
+            List<CoupangAdapter.CoupangReturnCancelInfo> infos,
+            Map<String, Order> pendingOrderMap,
+            CoupangAdapter coupangAdapter,
+            UUID tenantId) {
+
+        int updatedCount = 0;
+        for (CoupangAdapter.CoupangReturnCancelInfo info : infos) {
+            Order dbOrder = pendingOrderMap.get(info.shipmentBoxId());
+            if (dbOrder == null) continue;
+
+            OrderStatus newStatus = coupangAdapter.mapReturnCancelStatus(info.receiptType(), info.receiptStatus());
+            if (!dbOrder.getStatus().equals(newStatus)) {
+                OrderStatus oldStatus = dbOrder.getStatus();
+                dbOrder.setStatus(newStatus);
+                dbOrder.setMarketplaceStatus(info.receiptStatus());
+                updatedCount++;
+
+                log.debug("Coupang order {} status changed via {}: {} -> {}",
+                        info.shipmentBoxId(), info.receiptType(), oldStatus, newStatus);
+
+                eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                        dbOrder.getId(), tenantId, oldStatus, newStatus, "MARKETPLACE_SYNC"));
+
+                // 이미 업데이트한 주문은 맵에서 제거하여 중복 업데이트 방지
+                pendingOrderMap.remove(info.shipmentBoxId());
+            }
+        }
         return updatedCount;
     }
 }
