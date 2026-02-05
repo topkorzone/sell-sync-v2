@@ -7,6 +7,7 @@ import com.mhub.common.exception.BusinessException;
 import com.mhub.common.exception.ErrorCodes;
 import com.mhub.core.domain.entity.Order;
 import com.mhub.core.domain.entity.OrderItem;
+import com.mhub.core.domain.entity.OrderSettlement;
 import com.mhub.core.domain.entity.TenantMarketplaceCredential;
 import com.mhub.core.domain.enums.MarketplaceType;
 import com.mhub.core.domain.enums.OrderStatus;
@@ -205,7 +206,7 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
 
             // 상품 정보 (네이버는 productOrder 단위가 1개 상품)
             String productName = productOrderNode.path("productName").asText("상품명 없음");
-            String optionName = productOrderNode.path("optionCode").asText(null);
+            String optionName = productOrderNode.path("productOption").asText(null);
             int quantity = productOrderNode.path("quantity").asInt(1);
             BigDecimal unitPrice = BigDecimal.valueOf(productOrderNode.path("unitPrice").asLong(0));
             BigDecimal itemTotalPrice = BigDecimal.valueOf(productOrderNode.path("totalProductAmount").asLong(0));
@@ -398,6 +399,157 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
         }
 
         return results;
+    }
+
+    @Override
+    public List<OrderSettlement> collectSettlements(TenantMarketplaceCredential credential, LocalDate from, LocalDate to) {
+        log.info("Collecting Naver settlements for seller {} from {} to {}", credential.getSellerId(), from, to);
+
+        String accessToken = getAccessToken(credential);
+        List<OrderSettlement> allSettlements = new ArrayList<>();
+
+        for (LocalDate currentDate = from; !currentDate.isAfter(to); currentDate = currentDate.plusDays(1)) {
+            // Rate Limit 방지
+            if (!currentDate.equals(from)) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            boolean hasMore = true;
+            int page = 1;
+            while (hasMore) {
+                try {
+                    String searchDateStr = currentDate.toString();
+
+                    StringBuilder uriBuilder = new StringBuilder("/v1/pay-settle/settle/case");
+                    uriBuilder.append("?searchDate=").append(searchDateStr);
+                    uriBuilder.append("&periodType=SETTLE_CASEBYCASE_SETTLE_BASIS_DATE");
+                    uriBuilder.append("&pageSize=500");
+                    if (page > 1) {
+                        uriBuilder.append("&page=").append(page);
+                    }
+
+                    String path = uriBuilder.toString();
+                    String fullUrl = "https://api.commerce.naver.com/external" + path;
+                    log.debug("Naver settlement API request URL: {}", fullUrl);
+
+                    String response = WebClient.create()
+                            .get()
+                            .uri(URI.create(fullUrl))
+                            .header("Authorization", "Bearer " + accessToken)
+                            .retrieve()
+                            .bodyToMono(String.class)
+                            .block();
+
+                    JsonNode root = objectMapper.readTree(response);
+                    JsonNode elements = root.path("elements");
+
+                    log.info("Naver settlement elements count for date {}: {}", currentDate, elements.size());
+
+                    if (elements.isArray() && elements.size() > 0) {
+                        for (JsonNode item : elements) {
+                            OrderSettlement settlement = parseNaverSettlement(item);
+                            if (settlement != null) {
+                                allSettlements.add(settlement);
+                            }
+                        }
+
+                        // 페이지 사이즈만큼 왔으면 다음 페이지 존재 가능
+                        if (elements.size() >= 500) {
+                            page++;
+                        } else {
+                            hasMore = false;
+                        }
+                    } else {
+                        hasMore = false;
+                    }
+
+                } catch (WebClientResponseException e) {
+                    log.error("Naver settlement API error for date {}: {} {}", currentDate, e.getStatusCode(), e.getResponseBodyAsString());
+                    throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                            "네이버 정산 수집 실패: " + parseNaverErrorMessage(e.getResponseBodyAsString()));
+                } catch (Exception e) {
+                    log.error("Error collecting Naver settlements for date {}", currentDate, e);
+                    throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                            "네이버 정산 수집 실패: " + e.getMessage());
+                }
+            }
+        }
+
+        log.info("Collected {} Naver settlements for seller {} from {} to {}", allSettlements.size(), credential.getSellerId(), from, to);
+        return allSettlements;
+    }
+
+    private OrderSettlement parseNaverSettlement(JsonNode item) {
+        try {
+            String productOrderId = item.path("productOrderId").asText(null);
+            String orderId = item.path("orderId").asText(null);
+            String settleType = item.path("settleType").asText(null);
+            String productId = item.path("productId").asText(null);
+            String productName = item.path("productName").asText(null);
+
+            LocalDate settleBasisDate = parseLocalDate(item.path("settleBasisDate").asText(null));
+            LocalDate settleExpectDate = parseLocalDate(item.path("settleExpectDate").asText(null));
+            LocalDate settleCompleteDate = parseLocalDate(item.path("settleCompleteDate").asText(null));
+            LocalDate payDate = parseLocalDate(item.path("payDate").asText(null));
+
+            BigDecimal saleAmount = toBigDecimal(item.path("paySettleAmount"));
+            BigDecimal settlementAmount = toBigDecimal(item.path("settleExpectAmount"));
+            BigDecimal commissionAmount = toBigDecimal(item.path("totalPayCommissionAmount"));
+            BigDecimal deliveryFeeAmount = toBigDecimal(item.path("deliveryFeeAmount"));
+            BigDecimal deliveryFeeCommission = toBigDecimal(item.path("deliveryFeeCommissionAmount"));
+            BigDecimal discountAmount = toBigDecimal(item.path("sellingInterlockCommissionAmount"));
+            BigDecimal sellerDiscountAmount = toBigDecimal(item.path("benefitSettleAmount"));
+
+            Map<String, Object> rawData = objectMapper.convertValue(item, new TypeReference<>() {});
+
+            return OrderSettlement.builder()
+                    .marketplaceType(MarketplaceType.NAVER)
+                    .marketplaceOrderId(orderId != null ? orderId : "")
+                    .marketplaceProductOrderId(productOrderId)
+                    .settleType(settleType)
+                    .settleBasisDate(settleBasisDate)
+                    .settleExpectDate(settleExpectDate)
+                    .settleCompleteDate(settleCompleteDate)
+                    .payDate(payDate)
+                    .productId(productId)
+                    .productName(productName)
+                    .saleAmount(saleAmount)
+                    .commissionAmount(commissionAmount)
+                    .deliveryFeeAmount(deliveryFeeAmount)
+                    .deliveryFeeCommission(deliveryFeeCommission)
+                    .settlementAmount(settlementAmount)
+                    .discountAmount(discountAmount)
+                    .sellerDiscountAmount(sellerDiscountAmount)
+                    .rawData(rawData)
+                    .build();
+
+        } catch (Exception e) {
+            log.warn("Failed to parse Naver settlement: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private LocalDate parseLocalDate(String dateStr) {
+        if (dateStr == null || dateStr.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(dateStr.substring(0, 10));
+        } catch (Exception e) {
+            log.warn("Failed to parse date: {}", dateStr);
+            return null;
+        }
+    }
+
+    private BigDecimal toBigDecimal(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        return BigDecimal.valueOf(node.asLong(0));
     }
 
     @Override

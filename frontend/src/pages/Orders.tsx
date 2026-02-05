@@ -189,6 +189,7 @@ export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncingSettlement, setSyncingSettlement] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -251,16 +252,36 @@ export default function Orders() {
     }
   };
 
+  const handleSettlementSync = async () => {
+    setSyncingSettlement(true);
+    try {
+      const { data } = await api.post<ApiResponse<Record<string, unknown>>>("/api/v1/settlements/sync");
+      const totalSynced = (data.data as Record<string, unknown>)?.totalSynced ?? 0;
+      toast.success(`정산 수집 완료: ${totalSynced}건`);
+      fetchOrders();
+    } catch {
+      toast.error("정산 수집에 실패했습니다.");
+    } finally {
+      setSyncingSettlement(false);
+    }
+  };
+
   const totalPages = Math.ceil(total / 20);
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-tight">주문 관리</h2>
-        <Button onClick={handleSync} disabled={syncing}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-          주문 동기화
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleSettlementSync} disabled={syncingSettlement}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${syncingSettlement ? "animate-spin" : ""}`} />
+            정산 수집
+          </Button>
+          <Button onClick={handleSync} disabled={syncing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+            주문 동기화
+          </Button>
+        </div>
       </div>
       <Card>
         <CardContent className="pt-6">
@@ -356,6 +377,7 @@ export default function Orders() {
                     {/* 상품 레벨 컬럼 */}
                     <TableHead className="w-[70px]">매핑</TableHead>
                     {/* 주문 레벨 컬럼 */}
+                    <TableHead className="w-[60px]">정산</TableHead>
                     <TableHead className="w-[90px]">주문일</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -452,6 +474,21 @@ export default function Orders() {
                               }}
                             >
                               {isMapped ? (item.erpProdCd || "매핑") : "미매핑"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        {/* 정산 - 첫 행만 표시 */}
+                        <TableCell>
+                          {isFirstItemOfOrder && (
+                            <Badge
+                              variant="outline"
+                              className={`text-xs border ${
+                                order.settlementCollected
+                                  ? "bg-green-100 text-green-700 border-green-200"
+                                  : "bg-gray-100 text-gray-500 border-gray-200"
+                              }`}
+                            >
+                              {order.settlementCollected ? "완료" : "미수집"}
                             </Badge>
                           )}
                         </TableCell>

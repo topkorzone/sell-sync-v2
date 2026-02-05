@@ -50,6 +50,17 @@ public class OrderSyncScheduler {
         publishSyncMessages(SyncType.STATUS_UPDATE);
     }
 
+    /**
+     * 정산 데이터 수집 (매일 01:00)
+     * - 전일 정산 데이터 수집
+     */
+    @Scheduled(cron = "0 0 1 * * *")
+    @SchedulerLock(name = "settlementCollection", lockAtMostFor = "PT55M", lockAtLeastFor = "PT5M")
+    public void scheduleSettlementCollection() {
+        log.info("Starting settlement collection scheduling");
+        publishSyncMessages(SyncType.SETTLEMENT_COLLECTION);
+    }
+
     private void publishSyncMessages(SyncType syncType) {
         List<Tenant> tenants = tenantRepository.findByActiveTrue();
         int count = 0;

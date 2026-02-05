@@ -64,6 +64,7 @@ export interface Order {
   expectedSettlementAmount: number | null;
   orderedAt: string;
   erpSynced: boolean;
+  settlementCollected: boolean;
   erpDocumentId: string | null;
   items: OrderItem[];
   createdAt: string;
@@ -115,6 +116,31 @@ export interface Settlement {
   netAmount: number;
   erpSynced: boolean;
   erpDocumentId: string | null;
+  createdAt: string;
+}
+
+export interface OrderSettlement {
+  id: string;
+  tenantId: string;
+  marketplaceType: MarketplaceType;
+  marketplaceOrderId: string;
+  marketplaceProductOrderId: string | null;
+  orderId: string | null;
+  settleType: string | null;
+  settleBasisDate: string | null;
+  settleExpectDate: string | null;
+  settleCompleteDate: string | null;
+  payDate: string | null;
+  productId: string | null;
+  productName: string | null;
+  vendorItemId: string | null;
+  saleAmount: number | null;
+  commissionAmount: number | null;
+  deliveryFeeAmount: number | null;
+  deliveryFeeCommission: number | null;
+  settlementAmount: number | null;
+  discountAmount: number | null;
+  sellerDiscountAmount: number | null;
   createdAt: string;
 }
 

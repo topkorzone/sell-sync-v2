@@ -79,6 +79,10 @@ public class Order extends BaseEntity {
     @Column(name = "expected_settlement_amount", precision = 15, scale = 2)
     private BigDecimal expectedSettlementAmount;
 
+    @Column(name = "settlement_collected", nullable = false)
+    @Builder.Default
+    private Boolean settlementCollected = false;
+
     @Type(JsonType.class)
     @Column(name = "raw_data", columnDefinition = "jsonb")
     private Map<String, Object> rawData;

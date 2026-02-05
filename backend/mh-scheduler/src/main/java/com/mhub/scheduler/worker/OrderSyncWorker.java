@@ -7,6 +7,7 @@ import com.mhub.core.domain.repository.JobExecutionLogRepository;
 import com.mhub.core.domain.repository.TenantMarketplaceCredentialRepository;
 import com.mhub.core.tenant.TenantContext;
 import com.mhub.marketplace.service.OrderSyncService;
+import com.mhub.marketplace.service.SettlementSyncService;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import java.util.UUID;
 @Profile("!local")
 public class OrderSyncWorker {
     private final OrderSyncService orderSyncService;
+    private final SettlementSyncService settlementSyncService;
     private final TenantMarketplaceCredentialRepository credentialRepository;
     private final JobExecutionLogRepository jobLogRepository;
     private final ObjectMapper objectMapper;
@@ -38,7 +40,13 @@ public class OrderSyncWorker {
         UUID credentialId = UUID.fromString(msg.credentialId());
         SyncType syncType = msg.syncType() != null ? msg.syncType() : SyncType.NEW_ORDERS;
 
-        String jobName = syncType == SyncType.NEW_ORDERS ? "NEW_ORDER_COLLECTION" : "STATUS_UPDATE";
+        String jobName;
+        switch (syncType) {
+            case NEW_ORDERS -> jobName = "NEW_ORDER_COLLECTION";
+            case STATUS_UPDATE -> jobName = "STATUS_UPDATE";
+            case SETTLEMENT_COLLECTION -> jobName = "SETTLEMENT_COLLECTION";
+            default -> jobName = syncType.name();
+        }
         JobExecutionLog jobLog = JobExecutionLog.builder()
                 .jobName(jobName)
                 .tenantId(tenantId)
@@ -58,6 +66,12 @@ public class OrderSyncWorker {
                 LocalDateTime to = LocalDateTime.now();
                 count = orderSyncService.syncOrders(cred, from, to);
                 log.info("New order collection completed: tenant={} mkt={} count={}",
+                        tenantId, msg.marketplaceType(), count);
+            } else if (syncType == SyncType.SETTLEMENT_COLLECTION) {
+                // 정산 데이터 수집: 전일
+                java.time.LocalDate yesterday = java.time.LocalDate.now().minusDays(1);
+                count = settlementSyncService.syncSettlements(cred, yesterday, yesterday);
+                log.info("Settlement collection completed: tenant={} mkt={} count={}",
                         tenantId, msg.marketplaceType(), count);
             } else {
                 // 상태 업데이트: 미완료 주문 상태 조회

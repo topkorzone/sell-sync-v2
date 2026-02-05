@@ -7,6 +7,7 @@ import com.mhub.common.exception.BusinessException;
 import com.mhub.common.exception.ErrorCodes;
 import com.mhub.core.domain.entity.Order;
 import com.mhub.core.domain.entity.OrderItem;
+import com.mhub.core.domain.entity.OrderSettlement;
 import com.mhub.core.domain.entity.TenantMarketplaceCredential;
 import com.mhub.core.domain.enums.MarketplaceType;
 import com.mhub.core.domain.enums.OrderStatus;
@@ -948,6 +949,208 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
                 parseCategoryRecursive(childNode, displayCategoryCode, currentRootCode, depth + 1, result);
             }
         }
+    }
+
+    @Override
+    public List<OrderSettlement> collectSettlements(TenantMarketplaceCredential credential, LocalDate from, LocalDate to) {
+        log.info("Collecting Coupang settlements for vendor {} from {} to {}", credential.getSellerId(), from, to);
+
+        String accessKey = credential.getClientId().trim();
+        String secretKey = credential.getClientSecret().trim();
+        String vendorId = credential.getSellerId().trim();
+
+        List<OrderSettlement> allSettlements = new ArrayList<>();
+
+        // 쿠팡 정산 API는 최대 31일 범위
+        LocalDate chunkStart = from;
+        while (!chunkStart.isAfter(to)) {
+            LocalDate chunkEnd = chunkStart.plusDays(30);
+            if (chunkEnd.isAfter(to)) {
+                chunkEnd = to;
+            }
+
+            String token = "";
+            do {
+                try {
+                    String responseBody = executeRevenueHistoryRequest(accessKey, secretKey, vendorId, chunkStart, chunkEnd, token);
+                    log.debug("Coupang settlement API response: {}", responseBody != null ? responseBody.substring(0, Math.min(500, responseBody.length())) : "null");
+
+                    JsonNode root = objectMapper.readTree(responseBody);
+
+                    int code = root.path("code").asInt(-1);
+                    if (code != 200) {
+                        String message = root.path("message").asText("Unknown error");
+                        log.error("Coupang settlement API error: {} - {}", code, message);
+                        throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                                "쿠팡 정산 수집 실패: " + message);
+                    }
+
+                    JsonNode data = root.path("data");
+                    if (data.isArray()) {
+                        for (JsonNode revenueItem : data) {
+                            // items 배열을 플래트닝
+                            String orderId = String.valueOf(revenueItem.path("orderId").asLong());
+                            LocalDate payDate = parseSettlementDate(revenueItem.path("payDate").asText(null));
+                            LocalDate settlementCompleteDate = parseSettlementDate(revenueItem.path("settlementDate").asText(null));
+
+                            JsonNode items = revenueItem.path("items");
+                            if (items.isArray()) {
+                                for (JsonNode itemNode : items) {
+                                    OrderSettlement settlement = parseCoupangSettlementItem(itemNode, orderId, payDate, settlementCompleteDate);
+                                    if (settlement != null) {
+                                        allSettlements.add(settlement);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    token = root.path("nextToken").asText("");
+
+                    // Rate limit
+                    if (token != null && !token.isEmpty()) {
+                        try {
+                            Thread.sleep(300);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+
+                } catch (BusinessException e) {
+                    throw e;
+                } catch (Exception e) {
+                    log.error("Error collecting Coupang settlements", e);
+                    throw new BusinessException(ErrorCodes.MARKETPLACE_API_ERROR,
+                            "쿠팡 정산 수집 실패: " + e.getMessage());
+                }
+            } while (token != null && !token.isEmpty());
+
+            chunkStart = chunkEnd.plusDays(1);
+        }
+
+        log.info("Collected {} Coupang settlements for vendor {} from {} to {}", allSettlements.size(), vendorId, from, to);
+        return allSettlements;
+    }
+
+    private OrderSettlement parseCoupangSettlementItem(JsonNode itemNode, String orderId, LocalDate payDate, LocalDate settlementCompleteDate) {
+        try {
+            String vendorItemId = String.valueOf(itemNode.path("vendorItemId").asLong());
+            String productName = itemNode.path("vendorItemName").asText(null);
+            BigDecimal saleAmount = toBigDecimal(itemNode.path("salesAmount"));
+            BigDecimal settlementAmount = toBigDecimal(itemNode.path("settlementAmount"));
+            BigDecimal serviceFee = toBigDecimal(itemNode.path("serviceFee"));
+            BigDecimal serviceFeeVat = toBigDecimal(itemNode.path("serviceFeeVat"));
+            BigDecimal commissionAmount = (serviceFee != null ? serviceFee : BigDecimal.ZERO)
+                    .add(serviceFeeVat != null ? serviceFeeVat : BigDecimal.ZERO);
+            BigDecimal deliveryFeeAmount = toBigDecimal(itemNode.path("deliveryChargeAmount"));
+            BigDecimal deliveryFeeCommission = toBigDecimal(itemNode.path("deliveryChargeFee"));
+            BigDecimal discountAmount = toBigDecimal(itemNode.path("discountAmount"));
+            BigDecimal sellerDiscountAmount = toBigDecimal(itemNode.path("sellerDiscountAmount"));
+            String settleType = itemNode.path("settlementType").asText(null);
+
+            Map<String, Object> rawData = objectMapper.convertValue(itemNode, new TypeReference<>() {});
+
+            return OrderSettlement.builder()
+                    .marketplaceType(MarketplaceType.COUPANG)
+                    .marketplaceOrderId(orderId)
+                    .vendorItemId(vendorItemId)
+                    .settleType(settleType)
+                    .settleBasisDate(payDate)
+                    .settleCompleteDate(settlementCompleteDate)
+                    .payDate(payDate)
+                    .productName(productName)
+                    .saleAmount(saleAmount)
+                    .commissionAmount(commissionAmount)
+                    .deliveryFeeAmount(deliveryFeeAmount)
+                    .deliveryFeeCommission(deliveryFeeCommission)
+                    .settlementAmount(settlementAmount)
+                    .discountAmount(discountAmount)
+                    .sellerDiscountAmount(sellerDiscountAmount)
+                    .rawData(rawData)
+                    .build();
+
+        } catch (Exception e) {
+            log.warn("Failed to parse Coupang settlement item: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String executeRevenueHistoryRequest(String accessKey, String secretKey, String vendorId,
+                                                 LocalDate from, LocalDate to, String token) throws Exception {
+        CloseableHttpClient client = null;
+        try {
+            client = HttpClients.createDefault();
+
+            String method = "GET";
+            String path = "/v2/providers/openapi/apis/api/v1/revenue-history";
+
+            URIBuilder uriBuilder = new URIBuilder()
+                    .setPath(path)
+                    .addParameter("vendorId", vendorId)
+                    .addParameter("recognitionDateFrom", from.toString())
+                    .addParameter("recognitionDateTo", to.toString())
+                    .addParameter("token", token != null ? token : "")
+                    .addParameter("maxPerPage", "50");
+
+            String fullPath = uriBuilder.build().toString();
+            int qIdx = fullPath.indexOf('?');
+            String pathOnly = qIdx >= 0 ? fullPath.substring(0, qIdx) : fullPath;
+            String queryString = qIdx >= 0 ? fullPath.substring(qIdx + 1) : "";
+
+            log.debug("Coupang settlement API request path: {}", fullPath);
+
+            String datetime = DateTimeFormatter.ofPattern("yyMMdd'T'HHmmss'Z'")
+                    .format(LocalDateTime.now(ZoneOffset.UTC));
+            String message = datetime + method + pathOnly + queryString;
+            String signature = generateHmacSignature(secretKey, message);
+            String authorization = "CEA algorithm=HmacSHA256, access-key=" + accessKey
+                    + ", signed-date=" + datetime + ", signature=" + signature;
+
+            uriBuilder.setScheme(SCHEMA).setHost(HOST).setPort(PORT);
+            HttpGet get = new HttpGet(uriBuilder.build().toString());
+            get.addHeader("Authorization", authorization);
+            get.addHeader("content-type", "application/json");
+            get.addHeader("X-Requested-By", vendorId);
+
+            try (CloseableHttpResponse response = client.execute(get)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+                String responseBody = response.getEntity() != null
+                        ? EntityUtils.toString(response.getEntity()) : "";
+
+                if (statusCode == 401 || statusCode == 403) {
+                    throw new BusinessException(ErrorCodes.MARKETPLACE_AUTH_FAILED,
+                            "쿠팡 인증 실패: API 키를 확인해주세요.");
+                }
+
+                return responseBody;
+            }
+        } finally {
+            if (client != null) {
+                try {
+                    client.close();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
+    private LocalDate parseSettlementDate(String dateStr) {
+        if (dateStr == null || dateStr.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(dateStr.substring(0, 10));
+        } catch (Exception e) {
+            log.warn("Failed to parse settlement date: {}", dateStr);
+            return null;
+        }
+    }
+
+    private BigDecimal toBigDecimal(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        return BigDecimal.valueOf(node.asLong(0));
     }
 
     /**

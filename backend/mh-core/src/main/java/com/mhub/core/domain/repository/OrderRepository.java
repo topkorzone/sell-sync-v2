@@ -6,6 +6,7 @@ import com.mhub.core.domain.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -63,4 +64,23 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             @Param("marketplaceType") MarketplaceType marketplaceType,
             @Param("completedStatuses") List<OrderStatus> completedStatuses,
             @Param("since") LocalDateTime since);
+
+    /**
+     * 마켓플레이스 주문번호로 주문 조회 (정산 매칭용)
+     */
+    List<Order> findByTenantIdAndMarketplaceTypeAndMarketplaceOrderIdIn(
+            UUID tenantId, MarketplaceType marketplaceType, List<String> marketplaceOrderIds);
+
+    /**
+     * 마켓플레이스 상품주문번호로 주문 조회 (네이버 정산 매칭용)
+     */
+    List<Order> findByTenantIdAndMarketplaceTypeAndMarketplaceProductOrderIdIn(
+            UUID tenantId, MarketplaceType marketplaceType, List<String> marketplaceProductOrderIds);
+
+    /**
+     * 정산 수집 완료 표시
+     */
+    @Modifying
+    @Query("UPDATE Order o SET o.settlementCollected = true WHERE o.id IN :orderIds")
+    int markSettlementCollected(@Param("orderIds") List<UUID> orderIds);
 }

@@ -12,5 +12,10 @@ public enum SyncType {
     /**
      * 미완료 주문 상태 업데이트
      */
-    STATUS_UPDATE
+    STATUS_UPDATE,
+
+    /**
+     * 건별 정산 데이터 수집
+     */
+    SETTLEMENT_COLLECTION
 }

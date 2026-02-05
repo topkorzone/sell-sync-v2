@@ -49,6 +49,10 @@ public final class ErrorCodes {
     public static final String PRODUCT_MAPPING_NOT_FOUND = "PM_001";
     public static final String PRODUCT_MAPPING_INVALID_REQUEST = "PM_002";
 
+    // Settlement
+    public static final String SETTLEMENT_SYNC_FAILED = "SETTLE_001";
+    public static final String SETTLEMENT_NO_DATA = "SETTLE_002";
+
     // General
     public static final String INTERNAL_ERROR = "SYS_001";
     public static final String VALIDATION_ERROR = "SYS_002";

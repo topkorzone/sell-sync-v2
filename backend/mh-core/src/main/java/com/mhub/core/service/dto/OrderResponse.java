@@ -34,6 +34,7 @@ public class OrderResponse {
     private BigDecimal expectedSettlementAmount;
     private LocalDateTime orderedAt;
     private Boolean erpSynced;
+    private Boolean settlementCollected;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<OrderItemResponse> items;
@@ -111,6 +112,7 @@ public class OrderResponse {
                 .expectedSettlementAmount(finalSettlementAmount)
                 .orderedAt(order.getOrderedAt())
                 .erpSynced(order.getErpSynced())
+                .settlementCollected(order.getSettlementCollected())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .items(itemResponses);
