@@ -288,3 +288,4 @@ $RECYCLE.BIN/
 CLAUDE.md
 /docs
 setings.local.json
+backend/http/api-test.http
