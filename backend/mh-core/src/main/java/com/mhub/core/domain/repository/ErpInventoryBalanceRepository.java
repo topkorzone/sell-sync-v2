@@ -40,4 +40,13 @@ public interface ErpInventoryBalanceRepository extends JpaRepository<ErpInventor
             @Param("erpConfigId") UUID erpConfigId,
             @Param("prodCds") List<String> prodCds
     );
+
+    /**
+     * 특정 품목의 재고현황 조회 (재고량 내림차순)
+     */
+    @Query("SELECT e FROM ErpInventoryBalance e WHERE e.tenantId = :tenantId AND e.prodCd = :prodCd ORDER BY e.balQty DESC")
+    List<ErpInventoryBalance> findByTenantIdAndProdCdOrderByBalQtyDesc(
+            @Param("tenantId") UUID tenantId,
+            @Param("prodCd") String prodCd
+    );
 }

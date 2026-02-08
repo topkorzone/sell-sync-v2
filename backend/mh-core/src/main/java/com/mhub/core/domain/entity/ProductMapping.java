@@ -37,6 +37,9 @@ public class ProductMapping extends BaseEntity {
     @Column(name = "erp_prod_cd", length = 100)
     private String erpProdCd;
 
+    @Column(name = "erp_wh_cd", length = 10)
+    private String erpWhCd;
+
     @Column(name = "auto_created", nullable = false)
     @Builder.Default
     private Boolean autoCreated = false;

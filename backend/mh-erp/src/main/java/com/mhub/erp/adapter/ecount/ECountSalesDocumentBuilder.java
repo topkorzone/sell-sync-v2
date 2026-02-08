@@ -35,7 +35,8 @@ public class ECountSalesDocumentBuilder {
                 ? order.getOrderedAt().format(DATE_FMT)
                 : DATE_FMT.format(java.time.LocalDate.now());
 
-        String uploadSerNo = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        // UPLOAD_SER_NO: SMALLINT(4,0) - 최대 4자리 숫자, 동일 전표 라인들은 같은 값 사용
+        String uploadSerNo = String.valueOf((int) (Math.random() * 9000) + 1000);
 
         // 헤더: defaultHeader + marketplaceHeaders[marketplaceType] 병합
         Map<String, Object> header = new LinkedHashMap<>();
@@ -54,10 +55,25 @@ public class ECountSalesDocumentBuilder {
         List<Map<String, Object>> lines = new ArrayList<>();
         int lineNo = 1;
 
+        // 첫 번째 상품의 창고코드 (배송비/수수료 라인에서 사용)
+        String defaultWhCd = null;
+        for (OrderItem item : order.getItems()) {
+            if (item.getErpWhCd() != null && !item.getErpWhCd().isBlank()) {
+                defaultWhCd = item.getErpWhCd();
+                break;
+            }
+        }
+
         // 1) 상품판매 라인: OrderItem별 개별 라인
         Map<String, Object> prodTemplate = template.getLineProductSale();
         for (OrderItem item : order.getItems()) {
             Map<String, Object> line = buildBaseLine(header, ioDate, uploadSerNo, lineNo++);
+
+            // WH_CD: OrderItem.erpWhCd (ProductMapping에서 매핑된 창고코드)
+            String whCd = item.getErpWhCd();
+            if (whCd != null && !whCd.isBlank()) {
+                line.put("WH_CD", whCd);
+            }
 
             // PROD_CD: OrderItem.erpProdCd (ProductMapping에서 매핑된 코드)
             String prodCd = item.getErpProdCd();
@@ -93,6 +109,9 @@ public class ECountSalesDocumentBuilder {
         Map<String, Object> delFeeTemplate = template.getLineDeliveryFee();
         if (shouldAddLine(deliveryFee, delFeeTemplate)) {
             Map<String, Object> line = buildBaseLine(header, ioDate, uploadSerNo, lineNo++);
+            if (defaultWhCd != null) {
+                line.put("WH_CD", defaultWhCd);
+            }
             line.put("PROD_CD", getStringField(delFeeTemplate, "prodCd", ""));
             line.put("PROD_DES", getStringField(delFeeTemplate, "prodDes", "배송비"));
             line.put("QTY", "1");
@@ -109,6 +128,9 @@ public class ECountSalesDocumentBuilder {
         Map<String, Object> commTemplate = template.getLineSalesCommission();
         if (shouldAddLine(commissionAmount, commTemplate)) {
             Map<String, Object> line = buildBaseLine(header, ioDate, uploadSerNo, lineNo++);
+            if (defaultWhCd != null) {
+                line.put("WH_CD", defaultWhCd);
+            }
             // 마켓별 품목코드가 있으면 우선 사용
             String commProdCd = getMarketplaceProdCd(commTemplate, mktKey, "prodCd");
             String commProdDes = getMarketplaceProdCd(commTemplate, mktKey, "prodDes");
@@ -128,6 +150,9 @@ public class ECountSalesDocumentBuilder {
         Map<String, Object> delCommTemplate = template.getLineDeliveryCommission();
         if (shouldAddLine(deliveryCommission, delCommTemplate)) {
             Map<String, Object> line = buildBaseLine(header, ioDate, uploadSerNo, lineNo++);
+            if (defaultWhCd != null) {
+                line.put("WH_CD", defaultWhCd);
+            }
             // 마켓별 품목코드가 있으면 우선 사용
             String delCommProdCd = getMarketplaceProdCd(delCommTemplate, mktKey, "prodCd");
             String delCommProdDes = getMarketplaceProdCd(delCommTemplate, mktKey, "prodDes");
@@ -173,7 +198,8 @@ public class ECountSalesDocumentBuilder {
                 ? order.getOrderedAt().format(DATE_FMT)
                 : DATE_FMT.format(java.time.LocalDate.now());
 
-        String uploadSerNo = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        // UPLOAD_SER_NO: SMALLINT(4,0) - 최대 4자리 숫자, 동일 전표 라인들은 같은 값 사용
+        String uploadSerNo = String.valueOf((int) (Math.random() * 9000) + 1000);
 
         // 헤더 필드 분리
         List<ErpFieldMapping> headerMappings = fieldMappings.stream()
@@ -192,9 +218,24 @@ public class ECountSalesDocumentBuilder {
         List<Map<String, Object>> lines = new ArrayList<>();
         int lineNo = 1;
 
+        // 첫 번째 상품의 창고코드 (배송비/수수료 라인에서 사용)
+        String defaultWhCd = null;
+        for (OrderItem item : order.getItems()) {
+            if (item.getErpWhCd() != null && !item.getErpWhCd().isBlank()) {
+                defaultWhCd = item.getErpWhCd();
+                break;
+            }
+        }
+
         // 1) 상품판매 라인
         for (OrderItem item : order.getItems()) {
             Map<String, Object> line = buildBaseLineWithMappings(headerMappings, order, item, ioDate, uploadSerNo, lineNo++);
+
+            // WH_CD: OrderItem.erpWhCd
+            String whCd = item.getErpWhCd();
+            if (whCd != null && !whCd.isBlank()) {
+                line.put("WH_CD", whCd);
+            }
 
             // 기본 상품 필드
             String prodCd = item.getErpProdCd();
@@ -222,6 +263,9 @@ public class ECountSalesDocumentBuilder {
         BigDecimal deliveryFee = order.getDeliveryFee();
         if (deliveryFee != null && deliveryFee.compareTo(BigDecimal.ZERO) > 0) {
             Map<String, Object> line = buildBaseLineWithMappings(headerMappings, order, null, ioDate, uploadSerNo, lineNo++);
+            if (defaultWhCd != null) {
+                line.put("WH_CD", defaultWhCd);
+            }
             line.put("PROD_DES", "배송비");
             line.put("QTY", "1");
             applyVatCalculation(line, deliveryFee, "SUPPLY_DIV_11");
@@ -233,6 +277,9 @@ public class ECountSalesDocumentBuilder {
         BigDecimal commissionAmount = calculateCommissionAmount(order, settlements);
         if (commissionAmount.compareTo(BigDecimal.ZERO) > 0) {
             Map<String, Object> line = buildBaseLineWithMappings(headerMappings, order, null, ioDate, uploadSerNo, lineNo++);
+            if (defaultWhCd != null) {
+                line.put("WH_CD", defaultWhCd);
+            }
             line.put("PROD_DES", "판매수수료");
             line.put("QTY", "1");
             applyVatCalculation(line, commissionAmount, "SUPPLY_DIV_11");
@@ -245,6 +292,9 @@ public class ECountSalesDocumentBuilder {
         BigDecimal deliveryCommission = calculateDeliveryCommission(order, settlements);
         if (deliveryCommission.compareTo(BigDecimal.ZERO) > 0) {
             Map<String, Object> line = buildBaseLineWithMappings(headerMappings, order, null, ioDate, uploadSerNo, lineNo++);
+            if (defaultWhCd != null) {
+                line.put("WH_CD", defaultWhCd);
+            }
             line.put("PROD_DES", "배송수수료");
             line.put("QTY", "1");
             applyVatCalculation(line, deliveryCommission, "SUPPLY_DIV_11");

@@ -45,6 +45,9 @@ public class OrderItem extends BaseEntity {
     @Column(name = "erp_prod_cd", length = 100)
     private String erpProdCd;
 
+    @Column(name = "erp_wh_cd", length = 10)
+    private String erpWhCd;
+
     @Column(name = "commission_rate", precision = 5, scale = 2)
     private BigDecimal commissionRate;
 

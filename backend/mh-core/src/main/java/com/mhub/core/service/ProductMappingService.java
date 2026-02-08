@@ -2,11 +2,13 @@ package com.mhub.core.service;
 
 import com.mhub.common.exception.BusinessException;
 import com.mhub.common.exception.ErrorCodes;
+import com.mhub.core.domain.entity.ErpInventoryBalance;
 import com.mhub.core.domain.entity.ErpItem;
 import com.mhub.core.domain.entity.Order;
 import com.mhub.core.domain.entity.OrderItem;
 import com.mhub.core.domain.entity.ProductMapping;
 import com.mhub.core.domain.enums.MarketplaceType;
+import com.mhub.core.domain.repository.ErpInventoryBalanceRepository;
 import com.mhub.core.domain.repository.ErpItemRepository;
 import com.mhub.core.domain.repository.OrderItemRepository;
 import com.mhub.core.domain.repository.ProductMappingRepository;
@@ -37,6 +39,7 @@ public class ProductMappingService {
 
     private final ProductMappingRepository productMappingRepository;
     private final ErpItemRepository erpItemRepository;
+    private final ErpInventoryBalanceRepository erpInventoryBalanceRepository;
     private final OrderItemRepository orderItemRepository;
     private final CoupangCommissionRateService coupangCommissionRateService;
 
@@ -161,11 +164,12 @@ public class ProductMappingService {
                     ProductMapping pm = mapping.get();
                     item.setErpItemId(pm.getErpItemId());
                     item.setErpProdCd(pm.getErpProdCd());
+                    item.setErpWhCd(pm.getErpWhCd());
                     pm.recordUsage();
                     mappingsToUpdate.add(pm);
                     mappedCount++;
-                    log.debug("Auto-mapped order item: productId={}, sku={} -> erpProdCd={}",
-                            item.getMarketplaceProductId(), item.getMarketplaceSku(), pm.getErpProdCd());
+                    log.debug("Auto-mapped order item: productId={}, sku={} -> erpProdCd={}, whCd={}",
+                            item.getMarketplaceProductId(), item.getMarketplaceSku(), pm.getErpProdCd(), pm.getErpWhCd());
                 }
             }
 
@@ -259,6 +263,17 @@ public class ProductMappingService {
             throw new BusinessException(ErrorCodes.PRODUCT_MAPPING_INVALID_REQUEST, "ERP product code is required");
         }
 
+        // 창고코드: 요청에 있으면 사용, 없으면 재고현황에서 재고가 가장 많은 창고 자동 선택
+        String erpWhCd = request.getErpWhCd();
+        if (!StringUtils.hasText(erpWhCd)) {
+            List<ErpInventoryBalance> balances = erpInventoryBalanceRepository
+                    .findByTenantIdAndProdCdOrderByBalQtyDesc(tenantId, erpProdCd);
+            if (!balances.isEmpty()) {
+                erpWhCd = balances.get(0).getWhCd();
+                log.info("Auto-selected warehouse for product: prodCd={}, whCd={}", erpProdCd, erpWhCd);
+            }
+        }
+
         // 기존 매핑 조회 또는 새로 생성
         String sku = StringUtils.hasText(request.getMarketplaceSku()) ? request.getMarketplaceSku() : null;
         Optional<ProductMapping> existingMapping;
@@ -281,11 +296,12 @@ public class ProductMappingService {
             mapping = existingMapping.get();
             mapping.setErpItemId(erpItem != null ? erpItem.getId() : null);
             mapping.setErpProdCd(erpProdCd);
+            mapping.setErpWhCd(erpWhCd);
             mapping.setMarketplaceProductName(request.getMarketplaceProductName());
             mapping.setMarketplaceOptionName(request.getMarketplaceOptionName());
             mapping.setAutoCreated(false); // 수동 수정 시 auto_created는 false로
-            log.info("Updated product mapping: id={}, productId={}, sku={} -> erpProdCd={}",
-                    mapping.getId(), request.getMarketplaceProductId(), sku, erpProdCd);
+            log.info("Updated product mapping: id={}, productId={}, sku={} -> erpProdCd={}, whCd={}",
+                    mapping.getId(), request.getMarketplaceProductId(), sku, erpProdCd, request.getErpWhCd());
         } else {
             // 새 매핑 생성
             mapping = ProductMapping.builder()
@@ -297,11 +313,12 @@ public class ProductMappingService {
                     .marketplaceOptionName(request.getMarketplaceOptionName())
                     .erpItemId(erpItem != null ? erpItem.getId() : null)
                     .erpProdCd(erpProdCd)
+                    .erpWhCd(erpWhCd)
                     .autoCreated(false)
                     .useCount(0)
                     .build();
-            log.info("Created product mapping: productId={}, sku={} -> erpProdCd={}",
-                    request.getMarketplaceProductId(), sku, erpProdCd);
+            log.info("Created product mapping: productId={}, sku={} -> erpProdCd={}, whCd={}",
+                    request.getMarketplaceProductId(), sku, erpProdCd, request.getErpWhCd());
         }
 
         mapping = productMappingRepository.save(mapping);
@@ -309,7 +326,7 @@ public class ProductMappingService {
         // 해당 상품의 모든 OrderItem에 매핑 적용 및 수수료 계산
         UUID erpItemId = erpItem != null ? erpItem.getId() : null;
         int mappedCount = applyMappingToOrderItems(tenantId, request.getMarketplaceType(),
-                request.getMarketplaceProductId(), sku, erpItemId, erpProdCd);
+                request.getMarketplaceProductId(), sku, erpItemId, erpProdCd, erpWhCd);
 
         // 매핑된 아이템 수만큼 사용횟수 증가
         if (mappedCount > 0) {
@@ -329,7 +346,7 @@ public class ProductMappingService {
      * @return 처리된 아이템 수 (매핑 또는 수수료 계산)
      */
     private int applyMappingToOrderItems(UUID tenantId, MarketplaceType marketplaceType,
-                                          String productId, String sku, UUID erpItemId, String erpProdCd) {
+                                          String productId, String sku, UUID erpItemId, String erpProdCd, String erpWhCd) {
         log.info("[DEBUG] applyMappingToOrderItems called: tenantId={}, marketplaceType={}, productId={}, sku={}",
                 tenantId, marketplaceType, productId, sku);
 
@@ -353,6 +370,7 @@ public class ProductMappingService {
             if (!StringUtils.hasText(item.getErpProdCd())) {
                 item.setErpItemId(erpItemId);
                 item.setErpProdCd(erpProdCd);
+                item.setErpWhCd(erpWhCd);
                 mappedCount++;
                 log.info("[DEBUG] Set ERP code for item: id={}", item.getId());
             }

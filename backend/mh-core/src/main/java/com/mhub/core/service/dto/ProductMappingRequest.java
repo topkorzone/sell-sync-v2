@@ -22,4 +22,5 @@ public class ProductMappingRequest {
     private String marketplaceOptionName;
     private UUID erpItemId;
     private String erpProdCd;
+    private String erpWhCd;
 }

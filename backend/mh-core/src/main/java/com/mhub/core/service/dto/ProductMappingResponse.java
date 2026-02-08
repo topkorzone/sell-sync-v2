@@ -22,6 +22,7 @@ public class ProductMappingResponse {
     private String marketplaceOptionName;
     private UUID erpItemId;
     private String erpProdCd;
+    private String erpWhCd;
     private Boolean autoCreated;
     private Integer useCount;
     private LocalDateTime lastUsedAt;
@@ -39,6 +40,7 @@ public class ProductMappingResponse {
                 .marketplaceOptionName(mapping.getMarketplaceOptionName())
                 .erpItemId(mapping.getErpItemId())
                 .erpProdCd(mapping.getErpProdCd())
+                .erpWhCd(mapping.getErpWhCd())
                 .autoCreated(mapping.getAutoCreated())
                 .useCount(mapping.getUseCount())
                 .lastUsedAt(mapping.getLastUsedAt())
