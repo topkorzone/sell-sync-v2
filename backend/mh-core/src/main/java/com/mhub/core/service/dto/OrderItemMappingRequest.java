@@ -10,4 +10,5 @@ import java.util.UUID;
 public class OrderItemMappingRequest {
     private UUID erpItemId;
     private String erpProdCd;
+    private String erpWhCd;
 }

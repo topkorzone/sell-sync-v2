@@ -72,6 +72,10 @@ export default function UnmappedMappingDialog({
       return;
     }
 
+    // 재고가 가장 많은 창고의 창고코드 선택
+    const inventoryList = selectedErpItem.inventoryBalances || [];
+    const erpWhCd = inventoryList.length > 0 ? inventoryList[0].whCd : null;
+
     setSaving(true);
     try {
       await api.post("/api/v1/product-mappings", {
@@ -82,6 +86,7 @@ export default function UnmappedMappingDialog({
         marketplaceOptionName: product.optionName || null,
         erpItemId: selectedErpItem.id || null,
         erpProdCd: selectedErpItem.prodCd,
+        erpWhCd,
       });
       toast.success("매핑이 등록되었습니다.");
       onOpenChange(false);

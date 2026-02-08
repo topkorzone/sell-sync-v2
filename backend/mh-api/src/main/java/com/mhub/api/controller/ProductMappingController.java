@@ -77,6 +77,16 @@ public class ProductMappingController {
         return ApiResponse.ok(null);
     }
 
+    @Operation(summary = "상품 매핑 일괄 삭제 (초기화)",
+            description = "모든 상품 매핑을 삭제합니다. marketplace 파라미터를 지정하면 해당 마켓플레이스의 매핑만 삭제합니다.")
+    @DeleteMapping("/all")
+    public ApiResponse<Long> deleteAllMappings(
+            @RequestParam(required = false) MarketplaceType marketplace) {
+        long deletedCount = productMappingService.deleteAllMappings(marketplace);
+        log.info("Bulk deleted product mappings: marketplace={}, count={}", marketplace, deletedCount);
+        return ApiResponse.ok(deletedCount);
+    }
+
     @Operation(summary = "매핑 수 조회")
     @GetMapping("/count")
     public ApiResponse<Long> getMappingCount() {

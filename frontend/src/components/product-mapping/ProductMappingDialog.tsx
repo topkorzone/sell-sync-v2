@@ -123,6 +123,10 @@ export default function ProductMappingDialog({
       return;
     }
 
+    // 재고가 가장 많은 창고의 창고코드 선택
+    const inventoryList = selectedErpItem.inventoryBalances || [];
+    const erpWhCd = inventoryList.length > 0 ? inventoryList[0].whCd : null;
+
     setSaving(true);
     try {
       await api.post("/api/v1/product-mappings", {
@@ -133,6 +137,7 @@ export default function ProductMappingDialog({
         marketplaceOptionName: marketplaceOptionName || null,
         erpItemId: selectedErpItem.id || null,
         erpProdCd: selectedErpItem.prodCd,
+        erpWhCd,
       });
       toast.success(isEditMode ? "매핑이 수정되었습니다." : "매핑이 등록되었습니다.");
       onOpenChange(false);

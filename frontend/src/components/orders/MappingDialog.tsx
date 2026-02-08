@@ -136,9 +136,14 @@ export default function MappingDialog({
     if (!selectedOrderItem || !selectedErpItem) return;
     setSaving(true);
     try {
+      // 재고가 가장 많은 창고의 창고코드 선택
+      const inventoryList = selectedErpItem.inventoryBalances || [];
+      const erpWhCd = inventoryList.length > 0 ? inventoryList[0].whCd : null;
+
       await api.post(`/api/v1/orders/${order.id}/items/${selectedOrderItem.id}/mapping`, {
         erpItemId: selectedErpItem.id,
         erpProdCd: selectedErpItem.prodCd,
+        erpWhCd,
       });
       toast.success(`"${selectedErpItem.prodCd}" 매핑 완료`);
       setSelectedOrderItem((prev) => prev ? { ...prev, erpItemId: selectedErpItem.id, erpProdCd: selectedErpItem.prodCd } : null);

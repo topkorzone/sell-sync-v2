@@ -1,5 +1,6 @@
 package com.mhub.core.service;
 
+import com.mhub.core.domain.entity.ErpInventoryBalance;
 import com.mhub.core.domain.entity.ErpItem;
 import com.mhub.core.domain.entity.Order;
 import com.mhub.core.domain.entity.OrderItem;
@@ -8,6 +9,7 @@ import com.mhub.core.domain.entity.ProductMapping;
 import com.mhub.core.domain.enums.MarketplaceType;
 import com.mhub.core.domain.enums.OrderStatus;
 import com.mhub.core.domain.event.OrderStatusChangedEvent;
+import com.mhub.core.domain.repository.ErpInventoryBalanceRepository;
 import com.mhub.core.domain.repository.ErpItemRepository;
 import com.mhub.core.domain.repository.OrderItemRepository;
 import com.mhub.core.domain.repository.OrderRepository;
@@ -40,6 +42,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final OrderStatusLogRepository orderStatusLogRepository;
     private final ErpItemRepository erpItemRepository;
+    private final ErpInventoryBalanceRepository erpInventoryBalanceRepository;
     private final ProductMappingRepository productMappingRepository;
     private final ProductMappingService productMappingService;
     private final CoupangCommissionRateService coupangCommissionRateService;
@@ -139,6 +142,7 @@ public class OrderService {
         // ERP 품목 정보 결정
         UUID erpItemId = null;
         String erpProdCd = null;
+        String erpWhCd = request.getErpWhCd();
 
         if (request.getErpItemId() != null) {
             ErpItem erpItem = erpItemRepository.findById(request.getErpItemId())
@@ -156,9 +160,20 @@ public class OrderService {
             erpProdCd = request.getErpProdCd();
         }
 
+        // 창고코드 자동 선택: 요청에 없으면 재고현황에서 재고가 가장 많은 창고 선택
+        if (erpWhCd == null || erpWhCd.isBlank()) {
+            List<ErpInventoryBalance> balances = erpInventoryBalanceRepository
+                    .findByTenantIdAndProdCdOrderByBalQtyDesc(tenantId, erpProdCd);
+            if (!balances.isEmpty()) {
+                erpWhCd = balances.get(0).getWhCd();
+                log.info("Auto-selected warehouse for product: prodCd={}, whCd={}", erpProdCd, erpWhCd);
+            }
+        }
+
         // 현재 항목 매핑
         item.setErpItemId(erpItemId);
         item.setErpProdCd(erpProdCd);
+        item.setErpWhCd(erpWhCd);
 
         // 쿠팡인 경우 수수료율과 정산예정금 계산
         BigDecimal commissionRate = null;
@@ -191,6 +206,7 @@ public class OrderService {
             }
             unmappedItem.setErpItemId(erpItemId);
             unmappedItem.setErpProdCd(erpProdCd);
+            unmappedItem.setErpWhCd(erpWhCd);
 
             // 쿠팡인 경우 수수료율과 정산예정금도 일괄 적용
             if (order.getMarketplaceType() == MarketplaceType.COUPANG) {

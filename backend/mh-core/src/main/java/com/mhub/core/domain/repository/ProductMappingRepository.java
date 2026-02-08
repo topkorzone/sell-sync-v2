@@ -117,4 +117,14 @@ public interface ProductMappingRepository extends JpaRepository<ProductMapping, 
      * 특정 마켓플레이스의 모든 매핑 조회 (주문 조회 시 매핑 상태 확인용)
      */
     List<ProductMapping> findByTenantIdAndMarketplaceType(UUID tenantId, MarketplaceType marketplaceType);
+
+    /**
+     * 테넌트의 모든 매핑 삭제
+     */
+    long deleteByTenantId(UUID tenantId);
+
+    /**
+     * 테넌트 + 마켓플레이스 타입별 매핑 삭제
+     */
+    long deleteByTenantIdAndMarketplaceType(UUID tenantId, MarketplaceType marketplaceType);
 }

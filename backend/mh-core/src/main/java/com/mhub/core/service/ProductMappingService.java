@@ -459,12 +459,14 @@ public class ProductMappingService {
         if (existingMapping.isPresent()) {
             mapping = existingMapping.get();
             // 기존 매핑의 ERP 정보가 다르면 업데이트
-            if (!item.getErpProdCd().equals(mapping.getErpProdCd())) {
+            if (!item.getErpProdCd().equals(mapping.getErpProdCd()) ||
+                !java.util.Objects.equals(item.getErpWhCd(), mapping.getErpWhCd())) {
                 mapping.setErpItemId(item.getErpItemId());
                 mapping.setErpProdCd(item.getErpProdCd());
+                mapping.setErpWhCd(item.getErpWhCd());
                 mapping.setAutoCreated(true);
-                log.info("Updated master mapping from order item: productId={}, sku={} -> erpProdCd={}",
-                        item.getMarketplaceProductId(), sku, item.getErpProdCd());
+                log.info("Updated master mapping from order item: productId={}, sku={} -> erpProdCd={}, whCd={}",
+                        item.getMarketplaceProductId(), sku, item.getErpProdCd(), item.getErpWhCd());
             }
             mapping.recordUsage();
         } else {
@@ -477,12 +479,13 @@ public class ProductMappingService {
                     .marketplaceOptionName(item.getOptionName())
                     .erpItemId(item.getErpItemId())
                     .erpProdCd(item.getErpProdCd())
+                    .erpWhCd(item.getErpWhCd())
                     .autoCreated(true)
                     .useCount(1)
                     .build();
             mapping.recordUsage();
-            log.info("Created master mapping from order item: productId={}, sku={} -> erpProdCd={}",
-                    item.getMarketplaceProductId(), sku, item.getErpProdCd());
+            log.info("Created master mapping from order item: productId={}, sku={} -> erpProdCd={}, whCd={}",
+                    item.getMarketplaceProductId(), sku, item.getErpProdCd(), item.getErpWhCd());
         }
 
         productMappingRepository.save(mapping);
@@ -580,5 +583,27 @@ public class ProductMappingService {
         } else {
             return orderItemRepository.countUnmappedProducts(tenantId);
         }
+    }
+
+    /**
+     * 상품 매핑 일괄 삭제 (초기화)
+     * @param marketplaceType 특정 마켓플레이스만 삭제하려면 지정, null이면 전체 삭제
+     * @return 삭제된 매핑 수
+     */
+    @Transactional
+    public long deleteAllMappings(MarketplaceType marketplaceType) {
+        UUID tenantId = TenantContext.requireTenantId();
+        long deletedCount;
+
+        if (marketplaceType != null) {
+            deletedCount = productMappingRepository.deleteByTenantIdAndMarketplaceType(tenantId, marketplaceType);
+            log.info("Deleted all product mappings for marketplace: tenantId={}, marketplaceType={}, count={}",
+                    tenantId, marketplaceType, deletedCount);
+        } else {
+            deletedCount = productMappingRepository.deleteByTenantId(tenantId);
+            log.info("Deleted all product mappings: tenantId={}, count={}", tenantId, deletedCount);
+        }
+
+        return deletedCount;
     }
 }
