@@ -37,9 +37,14 @@ import java.util.Collections;
 @Component
 public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
 
+    /**
+     * 네이버 상품주문상태(productOrderStatus) 매핑
+     * - PAYED 상태는 placeOrderStatus에 따라 COLLECTED 또는 CONFIRMED로 구분
+     * - 그 외 상태는 직접 매핑
+     */
     private static final Map<String, OrderStatus> STATUS_MAPPING = Map.ofEntries(
             Map.entry("PAYMENT_WAITING", OrderStatus.COLLECTED),
-            Map.entry("PAYED", OrderStatus.COLLECTED),
+            Map.entry("PAYED", OrderStatus.COLLECTED),  // 기본값, placeOrderStatus=OK면 CONFIRMED
             Map.entry("DELIVERING", OrderStatus.SHIPPING),
             Map.entry("DELIVERED", OrderStatus.DELIVERED),
             Map.entry("PURCHASE_DECIDED", OrderStatus.PURCHASE_CONFIRMED),
@@ -48,6 +53,30 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
             Map.entry("CANCELED", OrderStatus.CANCELLED),  // 네이버 API 실제 응답값
             Map.entry("RETURNED", OrderStatus.RETURNED)
     );
+
+    /**
+     * 네이버 통합 상태 매핑 (productOrderStatus + placeOrderStatus 조합)
+     * - 신규주문: PAYED + NOT_YET → COLLECTED
+     * - 배송준비(발주확인): PAYED + OK → CONFIRMED
+     * - 배송중: DELIVERING → SHIPPING
+     * - 배송완료: DELIVERED → DELIVERED
+     * - 구매확정: PURCHASE_DECIDED → PURCHASE_CONFIRMED
+     */
+    private OrderStatus mapNaverStatus(String productOrderStatus, String placeOrderStatus) {
+        if (productOrderStatus == null) {
+            return OrderStatus.COLLECTED;
+        }
+
+        // PAYED 상태일 때 발주확인 여부로 세분화
+        if ("PAYED".equals(productOrderStatus)) {
+            if ("OK".equals(placeOrderStatus)) {
+                return OrderStatus.CONFIRMED;  // 배송준비 (발주확인 완료)
+            }
+            return OrderStatus.COLLECTED;  // 신규주문 (발주확인 전)
+        }
+
+        return STATUS_MAPPING.getOrDefault(productOrderStatus, OrderStatus.COLLECTED);
+    }
 
     private final ObjectMapper objectMapper;
 
@@ -176,6 +205,7 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
 
             String orderId = orderNode.path("orderId").asText();
             String marketplaceStatus = productOrderNode.path("productOrderStatus").asText();
+            String placeOrderStatus = productOrderNode.path("placeOrderStatus").asText(null);
 
             // 주문자 정보
             String buyerName = orderNode.path("ordererName").asText(null);
@@ -193,6 +223,12 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
             // 금액 정보
             BigDecimal totalAmount = BigDecimal.valueOf(productOrderNode.path("totalPaymentAmount").asLong(0));
             BigDecimal deliveryFee = BigDecimal.valueOf(productOrderNode.path("deliveryFeeAmount").asLong(0));
+
+            // 배송수수료 추정 계산: 배송비가 있으면 67원 고정
+            BigDecimal estimatedDeliveryCommission = BigDecimal.ZERO;
+            if (deliveryFee.compareTo(BigDecimal.ZERO) > 0) {
+                estimatedDeliveryCommission = BigDecimal.valueOf(67);
+            }
 
             // 정산예정금 (네이버는 API에서 직접 제공)
             BigDecimal expectedSettlementAmount = null;
@@ -222,8 +258,9 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
                     .marketplaceType(MarketplaceType.NAVER)
                     .marketplaceOrderId(orderId)
                     .marketplaceProductOrderId(productOrderId)
-                    .status(mapStatus(marketplaceStatus))
+                    .status(mapNaverStatus(marketplaceStatus, placeOrderStatus))
                     .marketplaceStatus(marketplaceStatus)
+                    .placeOrderStatus(placeOrderStatus)
                     .buyerName(buyerName)
                     .buyerPhone(buyerPhone)
                     .receiverName(receiverName)
@@ -232,6 +269,7 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
                     .receiverZipcode(receiverZipcode)
                     .totalAmount(totalAmount)
                     .deliveryFee(deliveryFee)
+                    .estimatedDeliveryCommission(estimatedDeliveryCommission)
                     .expectedSettlementAmount(expectedSettlementAmount)
                     .orderedAt(orderedAt)
                     .erpSynced(false)
@@ -387,12 +425,14 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
                     JsonNode productOrder = item.path("productOrder");
                     String productOrderId = productOrder.path("productOrderId").asText(null);
                     String marketplaceStatus = productOrder.path("productOrderStatus").asText(null);
+                    String placeOrderStatus = productOrder.path("placeOrderStatus").asText(null);
 
                     if (productOrderId != null && marketplaceStatus != null) {
                         OrderStatusInfo info = OrderStatusInfo.builder()
                                 .productOrderId(productOrderId)
                                 .marketplaceStatus(marketplaceStatus)
-                                .status(mapStatus(marketplaceStatus))
+                                .placeOrderStatus(placeOrderStatus)
+                                .status(mapNaverStatus(marketplaceStatus, placeOrderStatus))
                                 .build();
                         results.add(info);
                     }

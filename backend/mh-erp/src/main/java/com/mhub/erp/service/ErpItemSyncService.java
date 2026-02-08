@@ -35,6 +35,7 @@ public class ErpItemSyncService {
     private final TenantErpConfigRepository erpConfigRepository;
     private final ErpItemRepository erpItemRepository;
     private final ErpAdapterFactory adapterFactory;
+    private final ErpInventoryService erpInventoryService;
 
     @Transactional
     public ErpItemSyncResponse syncItems(UUID erpConfigId) {
@@ -91,6 +92,13 @@ public class ErpItemSyncService {
         }
 
         log.info("Item sync completed for ERP config {}: synced={}, failed={}", erpConfigId, syncedCount, failedCount);
+
+        // 품목 동기화 후 재고도 함께 동기화
+        try {
+            erpInventoryService.syncAllInventoryForConfig(tenantId, config);
+        } catch (Exception e) {
+            log.warn("재고 동기화 중 오류 발생 (품목 동기화는 성공): {}", e.getMessage());
+        }
 
         return ErpItemSyncResponse.builder()
                 .success(true)

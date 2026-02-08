@@ -289,6 +289,14 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
             // rawData 저장
             Map<String, Object> rawData = objectMapper.convertValue(shipmentBox, new TypeReference<>() {});
 
+            // 배송수수료 추정 계산: 배송비 × 3.3% (수수료 3% + 부가세 10%)
+            BigDecimal estimatedDeliveryCommission = BigDecimal.ZERO;
+            if (shippingPrice != null && shippingPrice.compareTo(BigDecimal.ZERO) > 0) {
+                estimatedDeliveryCommission = shippingPrice
+                        .multiply(BigDecimal.valueOf(0.033))
+                        .setScale(0, java.math.RoundingMode.HALF_UP);
+            }
+
             Order order = Order.builder()
                     .tenantId(tenantId)
                     .marketplaceType(MarketplaceType.COUPANG)
@@ -304,6 +312,7 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
                     .receiverZipcode(receiverZipcode)
                     .totalAmount(totalAmount)
                     .deliveryFee(shippingPrice)
+                    .estimatedDeliveryCommission(estimatedDeliveryCommission)
                     .orderedAt(orderedAt)
                     .erpSynced(false)
                     .rawData(rawData)

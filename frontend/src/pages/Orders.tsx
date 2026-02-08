@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { RefreshCw, Search, Loader2 } from "lucide-react";
+import { RefreshCw, Search, Loader2, Upload } from "lucide-react";
 import MappingDialog from "@/components/orders/MappingDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import api from "@/lib/api";
-import type { Order, OrderItem, OrderItemRow, MarketplaceType, OrderStatus, PageResponse, MarketplaceCredentialResponse, ApiResponse } from "@/types";
+import type { Order, OrderItem, OrderItemRow, MarketplaceType, OrderStatus, PageResponse, MarketplaceCredentialResponse, ApiResponse, ErpSyncResult, ErpBatchSyncResult } from "@/types";
 
 // 상태별 뱃지 색상 - CSS 클래스로 직접 지정
 const getStatusBadgeClass = (marketplaceStatus?: string): string => {
@@ -199,6 +199,8 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedMappingItem, setSelectedMappingItem] = useState<OrderItem | null>(null);
   const [registeredMarketplaces, setRegisteredMarketplaces] = useState<MarketplaceType[]>([]);
+  const [syncingErp, setSyncingErp] = useState(false);
+  const [syncingErpOrderId, setSyncingErpOrderId] = useState<string | null>(null);
 
   // 등록된 마켓플레이스 목록 조회
   useEffect(() => {
@@ -266,6 +268,39 @@ export default function Orders() {
     }
   };
 
+  const handleErpSyncAll = async () => {
+    setSyncingErp(true);
+    try {
+      const { data } = await api.post<ApiResponse<ErpBatchSyncResult>>("/api/v1/erp/orders/sync-all");
+      const result = data.data;
+      if (result) {
+        toast.success(`ERP 전표 등록: 성공 ${result.successCount}건 / 실패 ${result.failCount}건`);
+      }
+      fetchOrders();
+    } catch {
+      toast.error("ERP 전표 일괄 등록에 실패했습니다");
+    } finally {
+      setSyncingErp(false);
+    }
+  };
+
+  const handleErpSyncOrder = async (orderId: string) => {
+    setSyncingErpOrderId(orderId);
+    try {
+      const { data } = await api.post<ApiResponse<ErpSyncResult>>(`/api/v1/erp/orders/${orderId}/sync`);
+      if (data.data?.success) {
+        toast.success(data.data.message || "전표 등록 완료");
+        fetchOrders();
+      } else {
+        toast.error(data.data?.message || "전표 등록 실패");
+      }
+    } catch {
+      toast.error("ERP 전표 등록에 실패했습니다");
+    } finally {
+      setSyncingErpOrderId(null);
+    }
+  };
+
   const totalPages = Math.ceil(total / 20);
 
   return (
@@ -273,6 +308,14 @@ export default function Orders() {
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-tight">주문 관리</h2>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleErpSyncAll} disabled={syncingErp}>
+            {syncingErp ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            ERP 전표 등록
+          </Button>
           <Button variant="outline" onClick={handleSettlementSync} disabled={syncingSettlement}>
             <RefreshCw className={`mr-2 h-4 w-4 ${syncingSettlement ? "animate-spin" : ""}`} />
             정산 수집
@@ -378,6 +421,7 @@ export default function Orders() {
                     <TableHead className="w-[70px]">매핑</TableHead>
                     {/* 주문 레벨 컬럼 */}
                     <TableHead className="w-[60px]">정산</TableHead>
+                    <TableHead className="w-[60px]">ERP</TableHead>
                     <TableHead className="w-[90px]">주문일</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -489,6 +533,32 @@ export default function Orders() {
                               }`}
                             >
                               {order.settlementCollected ? "완료" : "미수집"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        {/* ERP - 첫 행만 표시 */}
+                        <TableCell>
+                          {isFirstItemOfOrder && (
+                            <Badge
+                              variant="outline"
+                              className={`text-xs border cursor-pointer hover:opacity-80 ${
+                                order.erpSynced
+                                  ? "bg-blue-100 text-blue-700 border-blue-200"
+                                  : "bg-gray-100 text-gray-500 border-gray-200"
+                              }`}
+                              onClick={() => {
+                                if (!order.erpSynced) {
+                                  handleErpSyncOrder(order.id);
+                                }
+                              }}
+                            >
+                              {syncingErpOrderId === order.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : order.erpSynced ? (
+                                "완료"
+                              ) : (
+                                "미등록"
+                              )}
                             </Badge>
                           )}
                         </TableCell>

@@ -3,6 +3,7 @@ package com.mhub.shipping.adapter.cj;
 import com.mhub.core.domain.entity.TenantCourierConfig;
 import com.mhub.core.domain.enums.CourierType;
 import com.mhub.shipping.adapter.CourierAdapter;
+import com.mhub.shipping.adapter.cj.dto.CjAddrRefineResponse;
 import com.mhub.shipping.adapter.cj.dto.CjApiResponse;
 import com.mhub.shipping.adapter.cj.dto.CjRegBookRequest;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,14 @@ public class CjCourierAdapter implements CourierAdapter {
 
     @Override
     public ReservationResult reservePickup(TenantCourierConfig config, PickupRequest req) {
+        CjReservationResult extResult = reservePickupWithClassification(config, req);
+        return new ReservationResult(extResult.success(), extResult.trackingNumber(), extResult.errorMessage());
+    }
+
+    /**
+     * 주소정제 정보를 포함한 확장 예약 결과 반환
+     */
+    public CjReservationResult reservePickupWithClassification(TenantCourierConfig config, PickupRequest req) {
         try {
             String custId = config.getContractCode();
             String bizRegNum = getExtraString(config, "bizRegNum");
@@ -43,22 +52,52 @@ public class CjCourierAdapter implements CourierAdapter {
                 trackingNumber = cjApiClient.requestTrackingNumber(token, custId);
             }
 
-            // 3. RegBook
+            // 3. Address Refine (분류코드 조회)
+            // 주소정제 API는 고객ID와 주소를 파라미터로 받음
+            CjAddrRefineResponse addrRefine = cjApiClient.refineAddress(
+                    token, custId, req.receiverAddress());
+
+            // 4. RegBook
             CjRegBookRequest regBookReq = buildRegBookRequest(config, req, token, trackingNumber);
             CjApiResponse response = cjApiClient.registerBooking(token, regBookReq);
 
             if (response.isSuccess()) {
-                log.info("CJ RegBook success: trackingNumber={}", trackingNumber);
-                return new ReservationResult(true, trackingNumber, null);
+                log.info("CJ RegBook success: trackingNumber={}, classificationCode={}",
+                        trackingNumber, addrRefine.classificationCode());
             } else {
                 log.warn("CJ RegBook failed: {}", response.RESULT_DETAIL());
-                return new ReservationResult(false, trackingNumber, response.RESULT_DETAIL());
             }
+            // 접수 성공/실패와 관계없이 주소정제 데이터는 항상 반환
+            return new CjReservationResult(
+                    response.isSuccess(),
+                    trackingNumber,
+                    response.isSuccess() ? null : response.RESULT_DETAIL(),
+                    addrRefine.classificationCode(),
+                    addrRefine.subClassificationCode(),
+                    addrRefine.addressAlias(),
+                    addrRefine.deliveryBranchName(),
+                    addrRefine.deliveryEmployeeNickname()
+            );
         } catch (Exception e) {
             log.error("CJ pickup reservation failed", e);
-            return new ReservationResult(false, null, e.getMessage());
+            return new CjReservationResult(false, null, e.getMessage(),
+                    null, null, null, null, null);
         }
     }
+
+    /**
+     * CJ 전용 예약 결과 (주소정제 정보 포함)
+     */
+    public record CjReservationResult(
+            boolean success,
+            String trackingNumber,
+            String errorMessage,
+            String classificationCode,
+            String subClassificationCode,
+            String addressAlias,
+            String deliveryBranchName,
+            String deliveryEmployeeNickname
+    ) {}
 
     @Override
     public void cancelReservation(TenantCourierConfig config, String trackingNumber) {

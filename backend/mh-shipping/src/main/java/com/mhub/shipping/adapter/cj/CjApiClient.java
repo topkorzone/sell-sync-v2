@@ -1,5 +1,7 @@
 package com.mhub.shipping.adapter.cj;
 
+import com.mhub.shipping.adapter.cj.dto.CjAddrRefineRequest;
+import com.mhub.shipping.adapter.cj.dto.CjAddrRefineResponse;
 import com.mhub.shipping.adapter.cj.dto.CjApiResponse;
 import com.mhub.shipping.adapter.cj.dto.CjRegBookRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -90,6 +92,57 @@ public class CjApiClient {
             throw new RuntimeException("CJ RegBook request failed: No response");
         }
         return response;
+    }
+
+    /**
+     * CJ대한통운 주소정제 API (ReqAddrRfnSm) 호출
+     * 분류코드, 주소약칭, 배달점소 정보를 반환
+     *
+     * @param token 토큰번호
+     * @param custId 고객 ID (CLNTNUM)
+     * @param address 주소
+     * @return 주소정제 결과 (분류코드, 주소약칭, 배달점소 등)
+     */
+    public CjAddrRefineResponse refineAddress(String token, String custId, String address) {
+        log.info("CJ ReqAddrRfnSm request: custId={}", custId);
+        try {
+            CjAddrRefineRequest request = CjAddrRefineRequest.of(token, custId, address);
+            CjApiResponse response = webClient.post()
+                    .uri("/ReqAddrRfnSm")
+                    .header("CJ-Gateway-APIKey", token)
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(CjApiResponse.class)
+                    .block();
+
+            if (response == null || !response.isSuccess()) {
+                String detail = response != null ? response.RESULT_DETAIL() : "No response";
+                log.warn("CJ ReqAddrRfnSm failed: {}", detail);
+                return CjAddrRefineResponse.failure(detail);
+            }
+
+            Map<String, Object> data = response.DATA();
+            log.info("CJ ReqAddrRfnSm response DATA: {}", data);
+            return CjAddrRefineResponse.builder()
+                    .success(true)
+                    .classificationCode(getString(data, "CLSFCD"))           // 도착지 코드
+                    .subClassificationCode(getString(data, "SUBCLSFCD"))     // 도착지 서브 코드
+                    .addressAlias(getString(data, "CLSFADDR"))               // 주소 약칭
+                    .deliveryBranchName(getString(data, "CLLDLVBRANNM"))     // 배송집배점 명
+                    .deliveryEmployeeName(getString(data, "CLLDLVEMPNM"))    // 배송SM명
+                    .deliveryEmployeeNickname(getString(data, "CLLDLVEMPNICKNM")) // SM분류코드
+                    .regionDivision(getString(data, "RSPSDIV"))              // 권역 구분
+                    .p2pCode(getString(data, "P2PCD"))                       // P2P코드
+                    .build();
+        } catch (Exception e) {
+            log.error("CJ ReqAddrRfnSm request error", e);
+            return CjAddrRefineResponse.failure(e.getMessage());
+        }
+    }
+
+    private String getString(Map<String, Object> data, String key) {
+        Object val = data.get(key);
+        return val != null ? val.toString() : null;
     }
 
     private record CachedToken(String token, Instant expiresAt) {

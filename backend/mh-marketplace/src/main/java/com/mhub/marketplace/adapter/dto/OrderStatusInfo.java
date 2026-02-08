@@ -25,6 +25,11 @@ public class OrderStatusInfo {
     private String marketplaceStatus;
 
     /**
+     * 발주확인 상태 (네이버: NOT_YET/OK)
+     */
+    private String placeOrderStatus;
+
+    /**
      * 매핑된 내부 상태
      */
     private OrderStatus status;

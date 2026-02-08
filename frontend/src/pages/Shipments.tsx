@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Printer } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,10 +28,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import api from "@/lib/api";
+import ShippingLabelPrintDialog from "@/components/shipping/ShippingLabelPrintDialog";
 import type {
   Order,
   OrderItemRow,
   MarketplaceType,
+  OrderStatus,
   PageResponse,
   MarketplaceCredentialResponse,
   CourierConfigResponse,
@@ -40,29 +42,42 @@ import type {
   ApiResponse,
 } from "@/types";
 
-const getStatusBadgeClass = (marketplaceStatus?: string): string => {
-  if (!marketplaceStatus) return "bg-gray-100 text-gray-700 border-gray-200";
+// 내부 통합 상태 기반 뱃지 스타일
+const getStatusBadgeClass = (status?: OrderStatus): string => {
+  if (!status) return "bg-gray-100 text-gray-700 border-gray-200";
 
-  if (["ACCEPT", "PAYED", "PAYMENT_WAITING"].includes(marketplaceStatus)) {
-    return "bg-red-100 text-red-700 border-red-200";
+  switch (status) {
+    case "COLLECTED":
+      return "bg-red-100 text-red-700 border-red-200";  // 신규주문 (결제완료)
+    case "CONFIRMED":
+    case "READY_TO_SHIP":
+      return "bg-green-100 text-green-700 border-green-200";  // 상품준비중/발송대기
+    case "SHIPPING":
+      return "bg-orange-100 text-orange-700 border-orange-200";  // 배송중
+    case "DELIVERED":
+      return "bg-blue-100 text-blue-700 border-blue-200";  // 배송완료
+    case "PURCHASE_CONFIRMED":
+      return "bg-emerald-100 text-emerald-700 border-emerald-200";  // 구매확정
+    case "CANCELLED":
+    case "RETURNED":
+    case "EXCHANGED":
+      return "bg-gray-100 text-gray-500 border-gray-200";  // 취소/반품/교환
+    default:
+      return "bg-gray-100 text-gray-700 border-gray-200";
   }
-  if (["INSTRUCT", "DEPARTURE"].includes(marketplaceStatus)) {
-    return "bg-blue-100 text-blue-700 border-blue-200";
-  }
-  if (["DELIVERING"].includes(marketplaceStatus)) {
-    return "bg-orange-100 text-orange-700 border-orange-200";
-  }
-  if (["FINAL_DELIVERY", "DELIVERED"].includes(marketplaceStatus)) {
-    return "bg-green-100 text-green-700 border-green-200";
-  }
-  if (["PURCHASE_DECIDED"].includes(marketplaceStatus)) {
-    return "bg-emerald-100 text-emerald-700 border-emerald-200";
-  }
-  if (["CANCEL", "CANCELLED", "RETURN", "RETURNED", "EXCHANGED"].includes(marketplaceStatus)) {
-    return "bg-gray-100 text-gray-500 border-gray-200";
-  }
+};
 
-  return "bg-gray-100 text-gray-700 border-gray-200";
+// 내부 통합 상태 한글 레이블
+const statusLabels: Record<OrderStatus, string> = {
+  COLLECTED: "결제완료",
+  CONFIRMED: "상품준비중",
+  READY_TO_SHIP: "발송대기",
+  SHIPPING: "배송중",
+  DELIVERED: "배송완료",
+  CANCELLED: "취소",
+  RETURNED: "반품",
+  EXCHANGED: "교환",
+  PURCHASE_CONFIRMED: "구매확정",
 };
 
 const marketplaceLabels: Record<MarketplaceType, string> = {
@@ -90,41 +105,6 @@ const BOX_TYPE_OPTIONS = [
   { value: "04", label: "대" },
   { value: "05", label: "특대" },
 ];
-
-const coupangStatusLabels: Record<string, string> = {
-  ACCEPT: "결제완료",
-  INSTRUCT: "상품준비중",
-  DEPARTURE: "배송지시",
-  DELIVERING: "배송중",
-  FINAL_DELIVERY: "배송완료",
-  NONE_TRACKING: "직접배송",
-  CANCEL: "취소",
-  RETURN: "반품",
-};
-
-const naverStatusLabels: Record<string, string> = {
-  PAYMENT_WAITING: "결제대기",
-  PAYED: "결제완료",
-  DELIVERING: "배송중",
-  DELIVERED: "배송완료",
-  PURCHASE_DECIDED: "구매확정",
-  EXCHANGED: "교환",
-  CANCELLED: "취소",
-  RETURNED: "반품",
-};
-
-function getMarketplaceStatusLabel(marketplaceType: MarketplaceType, marketplaceStatus?: string): string {
-  if (!marketplaceStatus) return "-";
-
-  switch (marketplaceType) {
-    case "COUPANG":
-      return coupangStatusLabels[marketplaceStatus] || marketplaceStatus;
-    case "NAVER":
-      return naverStatusLabels[marketplaceStatus] || marketplaceStatus;
-    default:
-      return marketplaceStatus;
-  }
-}
 
 function formatDate(dateStr?: string): string {
   if (!dateStr) return "-";
@@ -204,6 +184,10 @@ export default function Shipments() {
   const [bookingResultDialogOpen, setBookingResultDialogOpen] = useState(false);
   const [bookingResult, setBookingResult] = useState<BulkBookingResult | null>(null);
 
+  // 송장 출력 관련 상태
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+
   useEffect(() => {
     const fetchMarketplaces = async () => {
       try {
@@ -238,7 +222,7 @@ export default function Shipments() {
       const params: Record<string, string | number | string[]> = {
         page,
         size: 20,
-        statuses: ["CONFIRMED", "READY_TO_SHIP"],
+        statuses: ["COLLECTED", "CONFIRMED", "READY_TO_SHIP"],
       };
       if (marketplaceFilter) params.marketplace = marketplaceFilter;
       const { data } = await api.get<{ data: PageResponse<Order> }>("/api/v1/orders", {
@@ -277,9 +261,10 @@ export default function Shipments() {
               return sp.toString();
             },
           });
-          const shipments = shipRes.data.data ?? [];
+          const fetchedShipments = shipRes.data.data ?? [];
+          setShipments(fetchedShipments);
           const newTrackingMap: Record<string, string> = {};
-          for (const s of shipments) {
+          for (const s of fetchedShipments) {
             if (s.trackingNumber) {
               newTrackingMap[s.orderId] = s.trackingNumber;
             }
@@ -290,6 +275,7 @@ export default function Shipments() {
         }
       } else {
         setTrackingMap({});
+        setShipments([]);
       }
     } catch {
       toast.error("주문 목록을 불러오지 못했습니다.");
@@ -337,18 +323,26 @@ export default function Shipments() {
     });
   };
 
-  const bookableOrders = orders.filter((o) => !trackingMap[o.id] && o.status !== "READY_TO_SHIP");
+  // 선택된 주문 중 택배접수 가능한 주문 수 (송장번호 없는 주문)
+  const selectedBookableCount = orders.filter((o) => selectedOrderIds.has(o.id) && !trackingMap[o.id] && o.status !== "READY_TO_SHIP").length;
+  // 선택된 주문 중 송장출력 가능한 주문 수 (송장번호 있는 주문)
+  const selectedPrintableCount = orders.filter((o) => selectedOrderIds.has(o.id) && !!trackingMap[o.id]).length;
 
   const toggleAllSelection = () => {
-    if (bookableOrders.length > 0 && selectedOrderIds.size === bookableOrders.length) {
+    if (orders.length > 0 && selectedOrderIds.size === orders.length) {
       setSelectedOrderIds(new Set());
     } else {
-      setSelectedOrderIds(new Set(bookableOrders.map((o) => o.id)));
+      setSelectedOrderIds(new Set(orders.map((o) => o.id)));
     }
   };
 
   const handleBulkBook = async () => {
-    if (selectedOrderIds.size === 0) {
+    // 선택된 주문 중 송장번호가 없는 주문만 접수
+    const bookableIds = orders
+      .filter((o) => selectedOrderIds.has(o.id) && !trackingMap[o.id] && o.status !== "READY_TO_SHIP")
+      .map((o) => o.id);
+
+    if (bookableIds.length === 0) {
       toast.error("접수할 주문을 선택해주세요");
       return;
     }
@@ -362,17 +356,16 @@ export default function Shipments() {
     setBooking(true);
     setBookingResult(null);
     try {
-      // Build per-order boxTypeCd map for selected orders
-      const selectedIds = Array.from(selectedOrderIds);
+      // Build per-order boxTypeCd map for bookable orders only
       const boxTypeCdMap: Record<string, string> = {};
-      for (const id of selectedIds) {
+      for (const id of bookableIds) {
         boxTypeCdMap[id] = boxTypeMap[id] || "01";
       }
 
       const { data } = await api.post<ApiResponse<BulkBookingResult>>(
         "/api/v1/shipments/bulk-book",
         {
-          orderIds: selectedIds,
+          orderIds: bookableIds,
           courierType,
           boxTypeCdMap,
         },
@@ -434,14 +427,33 @@ export default function Shipments() {
               )}
               <Button
                 size="sm"
+                variant="outline"
+                onClick={() => setPrintDialogOpen(true)}
+                disabled={selectedPrintableCount === 0}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                송장출력
+                {selectedPrintableCount > 0 && (
+                  <span className="ml-1 text-xs opacity-75">
+                    ({selectedPrintableCount}건)
+                  </span>
+                )}
+              </Button>
+              <Button
+                size="sm"
                 onClick={handleBulkBook}
-                disabled={booking || selectedOrderIds.size === 0}
+                disabled={booking || selectedBookableCount === 0}
               >
                 {booking ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
                 택배접수
-                {courierConfigs.length > 0 && (
+                {selectedBookableCount > 0 && (
+                  <span className="ml-1 text-xs opacity-75">
+                    ({selectedBookableCount}건)
+                  </span>
+                )}
+                {courierConfigs.length > 0 && selectedBookableCount === 0 && (
                   <span className="ml-1 text-xs opacity-75">
                     ({COURIER_LABELS[courierConfigs[0].courierType] || courierConfigs[0].courierType})
                   </span>
@@ -471,9 +483,9 @@ export default function Shipments() {
                   <TableRow>
                     <TableHead className="w-[40px]">
                       <Checkbox
-                        checked={bookableOrders.length > 0 && selectedOrderIds.size === bookableOrders.length}
+                        checked={orders.length > 0 && selectedOrderIds.size === orders.length}
                         onCheckedChange={toggleAllSelection}
-                        disabled={bookableOrders.length === 0}
+                        disabled={orders.length === 0}
                       />
                     </TableHead>
                     <TableHead className="w-[150px]">주문번호</TableHead>
@@ -508,7 +520,6 @@ export default function Shipments() {
                             <Checkbox
                               checked={isSelected}
                               onCheckedChange={() => toggleOrderSelection(order.id)}
-                              disabled={isBooked}
                             />
                           )}
                         </TableCell>
@@ -565,9 +576,9 @@ export default function Shipments() {
                           {isFirstItemOfOrder && (
                             <Badge
                               variant="outline"
-                              className={`text-xs border ${getStatusBadgeClass(order.marketplaceStatus)}`}
+                              className={`text-xs border ${getStatusBadgeClass(order.status)}`}
                             >
-                              {getMarketplaceStatusLabel(order.marketplaceType, order.marketplaceStatus)}
+                              {statusLabels[order.status] || order.status}
                             </Badge>
                           )}
                         </TableCell>
@@ -634,6 +645,20 @@ export default function Shipments() {
           )}
         </CardContent>
       </Card>
+
+      {/* 송장 출력 다이얼로그 */}
+      {courierConfigs.length > 0 && (
+        <ShippingLabelPrintDialog
+          open={printDialogOpen}
+          onOpenChange={setPrintDialogOpen}
+          orders={orders.filter((o) => selectedOrderIds.has(o.id))}
+          shipments={shipments}
+          courierType={courierConfigs[0].courierType}
+          senderName={courierConfigs[0].senderName}
+          senderPhone={courierConfigs[0].senderPhone}
+          senderAddress={courierConfigs[0].senderAddress}
+        />
+      )}
 
       {/* Booking result dialog */}
       <Dialog open={bookingResultDialogOpen} onOpenChange={setBookingResultDialogOpen}>

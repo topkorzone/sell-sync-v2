@@ -100,6 +100,14 @@ export interface Shipment {
   deliveredAt: string | null;
   waybillUrl: string | null;
   marketplaceNotified: boolean;
+  // CJ 분류코드 관련 필드 (표준운송장 출력용)
+  classificationCode: string | null;
+  subClassificationCode: string | null;
+  addressAlias: string | null;
+  deliveryBranchName: string | null;
+  deliveryEmployeeNickname: string | null;
+  receiptDate: string | null;
+  deliveryMessage: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -308,6 +316,8 @@ export interface ErpItem {
   lastSyncedAt: string;
   createdAt: string;
   updatedAt: string;
+  // 재고 정보 (품목 조회 시 함께 반환)
+  inventoryBalances?: InventoryBalance[];
 }
 
 export interface ErpItemSyncResponse {
@@ -400,4 +410,143 @@ export interface CoupangSellerProductSyncResponse {
   syncCompletedAt: string;
   durationMs: number;
   errorMessage: string | null;
+}
+
+export interface SalesLineTemplate {
+  prodCd: string;
+  prodDes: string;
+  qtySource: string;
+  priceSource: string;
+  vatCalculation: string;
+  negateAmount: boolean;
+  skipIfZero: boolean;
+  remarks: string;
+  extraFields: Record<string, string>;
+  // 마켓별 품목코드 (판매수수료, 배송수수료용)
+  marketplaceProdCds?: Record<string, { prodCd: string; prodDes: string }>;
+}
+
+export interface ErpSalesTemplateRequest {
+  marketplaceHeaders: Record<string, Record<string, string>>;
+  defaultHeader: Record<string, string>;
+  lineProductSale: SalesLineTemplate;
+  lineDeliveryFee: SalesLineTemplate;
+  lineSalesCommission: SalesLineTemplate;
+  lineDeliveryCommission: SalesLineTemplate;
+  active: boolean;
+}
+
+export interface ErpSalesTemplateResponse {
+  id: string;
+  erpConfigId: string;
+  marketplaceHeaders: Record<string, Record<string, string>>;
+  defaultHeader: Record<string, string>;
+  lineProductSale: SalesLineTemplate;
+  lineDeliveryFee: SalesLineTemplate;
+  lineSalesCommission: SalesLineTemplate;
+  lineDeliveryCommission: SalesLineTemplate;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ErpSyncResult {
+  success: boolean;
+  documentId: string;
+  message: string;
+}
+
+export interface ErpBatchSyncResult {
+  totalCount: number;
+  successCount: number;
+  failCount: number;
+}
+
+export interface InventoryBalance {
+  whCd: string;
+  whDes: string;
+  prodCd: string;
+  balQty: number;
+}
+
+export interface InventoryBalanceResponse {
+  success: boolean;
+  items: InventoryBalance[];
+  itemsByProdCd: Record<string, InventoryBalance[]>;
+  errorMessage: string | null;
+}
+
+// ERP 판매전표 관련 타입
+export type ErpDocumentStatus = 'PENDING' | 'SENT' | 'FAILED' | 'CANCELLED';
+
+export const ErpDocumentStatusLabels: Record<ErpDocumentStatus, string> = {
+  PENDING: '미전송',
+  SENT: '전송완료',
+  FAILED: '전송실패',
+  CANCELLED: '취소',
+};
+
+export interface ErpSalesDocument {
+  id: string;
+  orderId: string;
+  marketplaceOrderId: string | null;
+  status: ErpDocumentStatus;
+  documentDate: string;
+  marketplaceType: MarketplaceType;
+  customerCode: string | null;
+  customerName: string | null;
+  totalAmount: number;
+  documentLines: SalesDocumentLine[];
+  erpDocumentId: string | null;
+  sentAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SalesDocumentLine {
+  LINE_NO: string;
+  IO_DATE: string;
+  UPLOAD_SER_NO: string;
+  PROD_CD: string;
+  PROD_DES: string;
+  QTY: string;
+  SUPPLY_AMT: string;
+  VAT_AMT: string;
+  PRICE: string;
+  CUST?: string;
+  CUST_DES?: string;
+  REMARKS?: string;
+  [key: string]: string | undefined;
+}
+
+export interface ErpDocumentCounts {
+  PENDING: number;
+  SENT: number;
+  FAILED: number;
+}
+
+export interface ErpDocumentSendResult {
+  documentId: string;
+  orderId: string;
+  success: boolean;
+  erpDocumentId: string | null;
+  errorMessage: string | null;
+}
+
+export interface ErpBatchSendResponse {
+  totalCount: number;
+  successCount: number;
+  failCount: number;
+  results: ErpDocumentSendResult[];
+}
+
+export interface ErpPendingOrder {
+  id: string;
+  marketplaceType: MarketplaceType;
+  marketplaceOrderId: string;
+  status: OrderStatus;
+  receiverName: string;
+  totalAmount: number;
+  orderedAt: string;
 }

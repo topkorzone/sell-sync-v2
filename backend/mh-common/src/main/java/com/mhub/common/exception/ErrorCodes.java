@@ -44,6 +44,11 @@ public final class ErrorCodes {
     public static final String ERP_CONNECTION_FAILED = "ERP_006";
     public static final String ERP_ITEM_SYNC_FAILED = "ERP_007";
     public static final String ERP_ITEM_NOT_FOUND = "ERP_008";
+    public static final String ERP_TEMPLATE_NOT_FOUND = "ERP_009";
+    public static final String ERP_SALES_DOCUMENT_CREATE_FAILED = "ERP_010";
+    public static final String ERP_DOCUMENT_NOT_FOUND = "ERP_011";
+    public static final String ERP_DOCUMENT_CANNOT_CANCEL = "ERP_012";
+    public static final String ERP_DOCUMENT_ALREADY_SENT = "ERP_013";
 
     // Product Mapping
     public static final String PRODUCT_MAPPING_NOT_FOUND = "PM_001";

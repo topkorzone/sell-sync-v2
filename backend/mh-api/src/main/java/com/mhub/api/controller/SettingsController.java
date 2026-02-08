@@ -12,12 +12,15 @@ import com.mhub.core.erp.dto.ErpConnectionTestRequest;
 import com.mhub.core.erp.dto.ErpItemResponse;
 import com.mhub.core.erp.dto.ErpItemSyncResponse;
 import com.mhub.core.erp.dto.ErpItemSyncStatusResponse;
+import com.mhub.core.erp.dto.ErpSalesTemplateRequest;
+import com.mhub.core.erp.dto.ErpSalesTemplateResponse;
 import com.mhub.core.marketplace.dto.ConnectionTestResponse;
 import com.mhub.core.marketplace.dto.MarketplaceCredentialRequest;
 import com.mhub.core.marketplace.dto.MarketplaceCredentialResponse;
 import com.mhub.core.tenant.TenantContext;
 import com.mhub.erp.service.ErpConfigService;
 import com.mhub.erp.service.ErpItemSyncService;
+import com.mhub.erp.service.ErpSalesTemplateService;
 import com.mhub.marketplace.service.MarketplaceCredentialService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +43,7 @@ public class SettingsController {
     private final MarketplaceCredentialService marketplaceCredentialService;
     private final ErpConfigService erpConfigService;
     private final ErpItemSyncService erpItemSyncService;
+    private final ErpSalesTemplateService erpSalesTemplateService;
     private final TenantCourierConfigRepository courierRepo;
 
     @Operation(summary = "마켓플레이스 자격증명 목록 조회")
@@ -259,5 +263,28 @@ public class SettingsController {
     @GetMapping("/erp/{id}/items/sync-status")
     public ApiResponse<ErpItemSyncStatusResponse> getErpItemsSyncStatus(@PathVariable UUID id) {
         return ApiResponse.ok(erpItemSyncService.getSyncStatus(id));
+    }
+
+    // ===================== ERP Sales Template Endpoints =====================
+
+    @Operation(summary = "ERP 전표 템플릿 조회")
+    @GetMapping("/erp/{erpConfigId}/sales-template")
+    public ApiResponse<ErpSalesTemplateResponse> getSalesTemplate(@PathVariable UUID erpConfigId) {
+        return ApiResponse.ok(erpSalesTemplateService.getTemplate(erpConfigId));
+    }
+
+    @Operation(summary = "ERP 전표 템플릿 저장 (upsert)")
+    @PutMapping("/erp/{erpConfigId}/sales-template")
+    public ApiResponse<ErpSalesTemplateResponse> saveSalesTemplate(
+            @PathVariable UUID erpConfigId,
+            @Valid @RequestBody ErpSalesTemplateRequest request) {
+        return ApiResponse.ok(erpSalesTemplateService.saveTemplate(erpConfigId, request));
+    }
+
+    @Operation(summary = "ERP 전표 템플릿 삭제")
+    @DeleteMapping("/erp/{erpConfigId}/sales-template")
+    public ApiResponse<Void> deleteSalesTemplate(@PathVariable UUID erpConfigId) {
+        erpSalesTemplateService.deleteTemplate(erpConfigId);
+        return ApiResponse.ok();
     }
 }

@@ -146,7 +146,7 @@ export default function ProductMappingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[90vw] max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="!w-[800px] !max-w-[95vw] max-h-[70vh] flex flex-col p-0 gap-0 overflow-hidden">
         {/* 헤더 */}
         <DialogHeader className="px-6 py-4 border-b shrink-0 pr-12">
           <DialogTitle>
@@ -267,15 +267,18 @@ export default function ProductMappingDialog({
             <table className="w-full">
               <thead className="sticky top-0 bg-background border-b">
                 <tr className="text-left text-sm text-muted-foreground">
-                  <th className="px-6 py-3 font-medium w-28">품목코드</th>
+                  <th className="px-6 py-3 font-medium w-24">품목코드</th>
                   <th className="px-4 py-3 font-medium">품명</th>
-                  <th className="px-4 py-3 font-medium w-24">규격</th>
-                  <th className="px-6 py-3 font-medium w-20"></th>
+                  <th className="px-4 py-3 font-medium w-20">규격</th>
+                  <th className="px-4 py-3 font-medium w-24">창고</th>
+                  <th className="px-4 py-3 font-medium w-20 text-right">재고</th>
+                  <th className="px-6 py-3 font-medium w-16"></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {erpItems.map((erpItem) => {
                   const isSelected = selectedErpItem?.prodCd === erpItem.prodCd;
+                  const inventoryList = erpItem.inventoryBalances || [];
                   return (
                     <tr
                       key={erpItem.id}
@@ -292,6 +295,32 @@ export default function ProductMappingDialog({
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {erpItem.sizeDes || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {inventoryList.length === 0 ? (
+                          <span className="text-muted-foreground">-</span>
+                        ) : (
+                          <div className="space-y-0.5">
+                            {inventoryList.map((inv, idx) => (
+                              <div key={idx} className="text-xs text-muted-foreground">
+                                {inv.whDes || inv.whCd}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right">
+                        {inventoryList.length === 0 ? (
+                          <span className="text-muted-foreground">-</span>
+                        ) : (
+                          <div className="space-y-0.5">
+                            {inventoryList.map((inv, idx) => (
+                              <div key={idx} className="text-xs font-medium">
+                                {inv.balQty.toLocaleString()}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-3">
                         {isSelected && (

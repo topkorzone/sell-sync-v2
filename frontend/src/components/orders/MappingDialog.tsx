@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import api from "@/lib/api";
 import type { Order, OrderItem, ErpItem, PageResponse } from "@/types";
 
@@ -27,6 +28,16 @@ interface MappingDialogProps {
   onMappingComplete: () => void;
 }
 
+const marketplaceLabels: Record<string, string> = {
+  NAVER: "스마트스토어",
+  COUPANG: "쿠팡",
+  ELEVEN_ST: "11번가",
+  GMARKET: "G마켓",
+  AUCTION: "옥션",
+  WEMAKEPRICE: "위메프",
+  TMON: "티몬",
+};
+
 export default function MappingDialog({
   order,
   initialItemId,
@@ -34,12 +45,14 @@ export default function MappingDialog({
   onOpenChange,
   onMappingComplete,
 }: MappingDialogProps) {
-  const [selectedItem, setSelectedItem] = useState<OrderItem | null>(null);
+  const [selectedOrderItem, setSelectedOrderItem] = useState<OrderItem | null>(null);
+  const [selectedErpItem, setSelectedErpItem] = useState<ErpItem | null>(null);
   const [erpItems, setErpItems] = useState<ErpItem[]>([]);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // 품목 검색 (재고 정보 포함)
   const searchErpItems = useCallback(async (keyword: string) => {
     setLoading(true);
     try {
@@ -54,36 +67,83 @@ export default function MappingDialog({
     }
   }, []);
 
+  // 다이얼로그 열릴 때 초기화
   useEffect(() => {
     if (open && order.items && order.items.length > 0) {
       const targetItem = initialItemId
         ? order.items.find(i => i.id === initialItemId) || order.items[0]
         : order.items[0];
-      setSelectedItem(targetItem);
-      const keyword = targetItem.productName?.slice(0, 10) || "";
-      setSearchKeyword(keyword);
-      searchErpItems(keyword);
+      setSelectedOrderItem(targetItem);
+      // 기존 매핑이 있으면 선택된 상태로
+      if (targetItem.erpProdCd) {
+        setSelectedErpItem({
+          id: targetItem.erpItemId || "",
+          prodCd: targetItem.erpProdCd,
+          prodDes: "",
+          sizeDes: null,
+          unit: null,
+          prodType: null,
+          inPrice: null,
+          outPrice: null,
+          barCode: null,
+          classCd: null,
+          classCd2: null,
+          classCd3: null,
+          setFlag: false,
+          balFlag: true,
+          lastSyncedAt: "",
+          createdAt: "",
+          updatedAt: "",
+        } as ErpItem);
+      } else {
+        setSelectedErpItem(null);
+      }
+      setSearchKeyword("");
+      setErpItems([]);
     }
-  }, [open, order.items, initialItemId, searchErpItems]);
+  }, [open, order.items, initialItemId]);
 
   const handleSelectOrderItem = (item: OrderItem) => {
-    setSelectedItem(item);
-    const keyword = item.productName?.slice(0, 10) || "";
-    setSearchKeyword(keyword);
-    searchErpItems(keyword);
+    setSelectedOrderItem(item);
+    if (item.erpProdCd) {
+      setSelectedErpItem({
+        id: item.erpItemId || "",
+        prodCd: item.erpProdCd,
+        prodDes: "",
+        sizeDes: null,
+        unit: null,
+        prodType: null,
+        inPrice: null,
+        outPrice: null,
+        barCode: null,
+        classCd: null,
+        classCd2: null,
+        classCd3: null,
+        setFlag: false,
+        balFlag: true,
+        lastSyncedAt: "",
+        createdAt: "",
+        updatedAt: "",
+      } as ErpItem);
+    } else {
+      setSelectedErpItem(null);
+    }
+    setSearchKeyword("");
+    setErpItems([]);
   };
 
-  const handleSaveMapping = async (erpItem: ErpItem) => {
-    if (!selectedItem) return;
+  const handleSaveMapping = async () => {
+    if (!selectedOrderItem || !selectedErpItem) return;
     setSaving(true);
     try {
-      await api.post(`/api/v1/orders/${order.id}/items/${selectedItem.id}/mapping`, {
-        erpItemId: erpItem.id,
-        erpProdCd: erpItem.prodCd,
+      await api.post(`/api/v1/orders/${order.id}/items/${selectedOrderItem.id}/mapping`, {
+        erpItemId: selectedErpItem.id,
+        erpProdCd: selectedErpItem.prodCd,
       });
-      toast.success(`"${erpItem.prodCd}" 매핑 완료`);
-      setSelectedItem((prev) => prev ? { ...prev, erpItemId: erpItem.id, erpProdCd: erpItem.prodCd } : null);
+      toast.success(`"${selectedErpItem.prodCd}" 매핑 완료`);
+      setSelectedOrderItem((prev) => prev ? { ...prev, erpItemId: selectedErpItem.id, erpProdCd: selectedErpItem.prodCd } : null);
       onMappingComplete();
+      onOpenChange(false);
     } catch {
       toast.error("매핑 저장에 실패했습니다.");
     } finally {
@@ -92,12 +152,13 @@ export default function MappingDialog({
   };
 
   const handleClearMapping = async () => {
-    if (!selectedItem) return;
+    if (!selectedOrderItem) return;
     setSaving(true);
     try {
-      await api.delete(`/api/v1/orders/${order.id}/items/${selectedItem.id}/mapping`);
+      await api.delete(`/api/v1/orders/${order.id}/items/${selectedOrderItem.id}/mapping`);
       toast.success("매핑 해제 완료");
-      setSelectedItem((prev) => prev ? { ...prev, erpItemId: null, erpProdCd: null } : null);
+      setSelectedOrderItem((prev) => prev ? { ...prev, erpItemId: null, erpProdCd: null } : null);
+      setSelectedErpItem(null);
       onMappingComplete();
     } catch {
       toast.error("매핑 해제에 실패했습니다.");
@@ -110,87 +171,106 @@ export default function MappingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[90vw] h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="!w-[800px] !max-w-[95vw] max-h-[70vh] flex flex-col p-0 gap-0 overflow-hidden">
         {/* 헤더 */}
         <DialogHeader className="px-6 py-4 border-b shrink-0 pr-12">
-          <DialogTitle className="flex items-center gap-3">
-            <span>ERP 품목 매핑</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              #{order.marketplaceOrderId}
-            </span>
-          </DialogTitle>
+          <DialogTitle>상품 매핑</DialogTitle>
         </DialogHeader>
 
-        {/* 매핑 대상 상품 */}
-        {selectedItem && (
-          <div className="px-6 py-3 bg-blue-50 dark:bg-blue-950/30 border-b shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-muted-foreground shrink-0">매핑 대상:</div>
-
-              {hasMultipleItems ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="h-auto py-1.5 px-3 font-normal justify-start">
-                      <div className="flex-1 text-left truncate">
-                        <span className="font-medium">{selectedItem.productName}</span>
-                        {selectedItem.optionName && (
-                          <span className="text-muted-foreground ml-1">({selectedItem.optionName})</span>
-                        )}
-                      </div>
-                      <ChevronDown className="h-4 w-4 ml-2 shrink-0" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[400px]">
-                    {order.items?.map((item) => (
-                      <DropdownMenuItem
-                        key={item.id}
-                        onClick={() => handleSelectOrderItem(item)}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="truncate flex-1">
-                          <span>{item.productName}</span>
-                          {item.optionName && (
-                            <span className="text-muted-foreground ml-1">({item.optionName})</span>
+        {/* 상품 정보 (읽기 전용) */}
+        <div className="px-6 py-4 border-b shrink-0 bg-muted/30">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <Label className="text-muted-foreground text-xs">마켓플레이스</Label>
+              <div className="mt-1">
+                <Badge variant="outline">
+                  {marketplaceLabels[order.marketplaceType] || order.marketplaceType}
+                </Badge>
+              </div>
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-xs">주문번호</Label>
+              <div className="mt-1 font-mono">{order.marketplaceOrderId}</div>
+            </div>
+            <div className="col-span-2">
+              <Label className="text-muted-foreground text-xs">상품</Label>
+              <div className="mt-1">
+                {hasMultipleItems ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="h-auto py-1.5 px-3 font-normal justify-start w-full">
+                        <div className="flex-1 text-left truncate">
+                          <span className="font-medium">{selectedOrderItem?.productName}</span>
+                          {selectedOrderItem?.optionName && (
+                            <span className="text-muted-foreground ml-1">({selectedOrderItem.optionName})</span>
                           )}
                         </div>
-                        {item.erpProdCd ? (
-                          <Badge variant="default" className="ml-2 text-xs">{item.erpProdCd}</Badge>
-                        ) : (
-                          <Badge variant="outline" className="ml-2 text-xs text-orange-600">미매핑</Badge>
-                        )}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <div className="flex-1 min-w-0 truncate">
-                  <span className="font-medium">{selectedItem.productName}</span>
-                  {selectedItem.optionName && (
-                    <span className="text-muted-foreground ml-1">({selectedItem.optionName})</span>
-                  )}
-                </div>
-              )}
-
-              {selectedItem.erpProdCd && (
-                <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant="default">{selectedItem.erpProdCd}</Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={handleClearMapping}
-                    disabled={saving}
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    해제
-                  </Button>
-                </div>
-              )}
+                        <ChevronDown className="h-4 w-4 ml-2 shrink-0" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[400px]">
+                      {order.items?.map((item) => (
+                        <DropdownMenuItem
+                          key={item.id}
+                          onClick={() => handleSelectOrderItem(item)}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="truncate flex-1">
+                            <span>{item.productName}</span>
+                            {item.optionName && (
+                              <span className="text-muted-foreground ml-1">({item.optionName})</span>
+                            )}
+                          </div>
+                          {item.erpProdCd ? (
+                            <Badge variant="default" className="ml-2 text-xs">{item.erpProdCd}</Badge>
+                          ) : (
+                            <Badge variant="outline" className="ml-2 text-xs text-orange-600">미매핑</Badge>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <div className="truncate" title={selectedOrderItem?.productName || "-"}>
+                    {selectedOrderItem?.productName || "-"}
+                    {selectedOrderItem?.optionName && (
+                      <span className="text-muted-foreground ml-1">({selectedOrderItem.optionName})</span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* 검색 영역 */}
+        {/* ERP 품목 선택 영역 */}
+        <div className="px-6 py-3 border-b shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Label className="text-base font-medium">ERP 품목 선택</Label>
+              {selectedErpItem && (
+                <Badge variant="default" className="font-mono">
+                  {selectedErpItem.prodCd}
+                  {selectedErpItem.prodDes && ` - ${selectedErpItem.prodDes}`}
+                </Badge>
+              )}
+            </div>
+            {selectedOrderItem?.erpProdCd && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={handleClearMapping}
+                disabled={saving}
+              >
+                <X className="h-4 w-4 mr-1" />
+                매핑 해제
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* ERP 품목 검색 */}
         <div className="px-6 py-3 border-b shrink-0">
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
@@ -201,6 +281,7 @@ export default function MappingDialog({
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && searchErpItems(searchKeyword)}
+                autoFocus
               />
             </div>
             <Button onClick={() => searchErpItems(searchKeyword)} disabled={loading} className="h-10 px-6">
@@ -217,7 +298,7 @@ export default function MappingDialog({
             </div>
           ) : erpItems.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
-              검색 결과가 없습니다.
+              {searchKeyword ? "검색 결과가 없습니다." : "품목코드 또는 품명으로 검색하세요."}
             </div>
           ) : (
             <table className="w-full">
@@ -226,16 +307,20 @@ export default function MappingDialog({
                   <th className="px-6 py-3 font-medium w-24">품목코드</th>
                   <th className="px-4 py-3 font-medium">품명</th>
                   <th className="px-4 py-3 font-medium w-20">규격</th>
-                  <th className="px-6 py-3 font-medium w-20"></th>
+                  <th className="px-4 py-3 font-medium w-24">창고</th>
+                  <th className="px-4 py-3 font-medium w-20 text-right">재고</th>
+                  <th className="px-6 py-3 font-medium w-16"></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {erpItems.map((erpItem) => {
-                  const isSelected = selectedItem?.erpProdCd === erpItem.prodCd;
+                  const isSelected = selectedErpItem?.prodCd === erpItem.prodCd;
+                  const inventoryList = erpItem.inventoryBalances || [];
                   return (
                     <tr
                       key={erpItem.id}
-                      className={`hover:bg-muted/50 ${isSelected ? "bg-green-50 dark:bg-green-950/20" : ""}`}
+                      className={`hover:bg-muted/50 cursor-pointer ${isSelected ? "bg-green-50 dark:bg-green-950/20" : ""}`}
+                      onClick={() => setSelectedErpItem(erpItem)}
                     >
                       <td className="px-6 py-3">
                         <span className="font-mono text-sm font-semibold text-primary">
@@ -248,23 +333,36 @@ export default function MappingDialog({
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {erpItem.sizeDes || "-"}
                       </td>
+                      <td className="px-4 py-3 text-sm">
+                        {inventoryList.length === 0 ? (
+                          <span className="text-muted-foreground">-</span>
+                        ) : (
+                          <div className="space-y-0.5">
+                            {inventoryList.map((inv, idx) => (
+                              <div key={idx} className="text-xs text-muted-foreground">
+                                {inv.whDes || inv.whCd}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right">
+                        {inventoryList.length === 0 ? (
+                          <span className="text-muted-foreground">-</span>
+                        ) : (
+                          <div className="space-y-0.5">
+                            {inventoryList.map((inv, idx) => (
+                              <div key={idx} className="text-xs font-medium">
+                                {inv.balQty.toLocaleString()}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-6 py-3">
-                        <Button
-                          variant={isSelected ? "default" : "outline"}
-                          size="sm"
-                          className="w-full"
-                          onClick={() => handleSaveMapping(erpItem)}
-                          disabled={saving || !selectedItem}
-                        >
-                          {isSelected ? (
-                            <>
-                              <Check className="h-4 w-4 mr-1" />
-                              매핑됨
-                            </>
-                          ) : (
-                            "선택"
-                          )}
-                        </Button>
+                        {isSelected && (
+                          <Check className="h-5 w-5 text-green-600" />
+                        )}
                       </td>
                     </tr>
                   );
@@ -272,6 +370,17 @@ export default function MappingDialog({
               </tbody>
             </table>
           )}
+        </div>
+
+        {/* 푸터 */}
+        <div className="px-6 py-4 border-t shrink-0 flex justify-end gap-3">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            취소
+          </Button>
+          <Button onClick={handleSaveMapping} disabled={saving || !selectedErpItem}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            매핑 저장
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

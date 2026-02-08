@@ -16,10 +16,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Wifi, Pencil, Trash2, Server, Loader2, Database } from "lucide-react";
+import { MoreHorizontal, Plus, Wifi, Pencil, Trash2, Server, Loader2, Database, FileText } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import ErpFormDialog from "./ErpFormDialog";
+import ErpSalesTemplateDialog from "./ErpSalesTemplateDialog";
 import type {
   ErpConfigResponse,
   ConnectionTestResponse,
@@ -39,6 +40,8 @@ export default function ErpList() {
   const [editTarget, setEditTarget] = useState<ErpConfigResponse | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [templateTarget, setTemplateTarget] = useState<ErpConfigResponse | null>(null);
 
   const fetchConfigs = useCallback(async () => {
     try {
@@ -65,6 +68,11 @@ export default function ErpList() {
   const handleEdit = (cfg: ErpConfigResponse) => {
     setEditTarget(cfg);
     setDialogOpen(true);
+  };
+
+  const handleOpenTemplate = (cfg: ErpConfigResponse) => {
+    setTemplateTarget(cfg);
+    setTemplateDialogOpen(true);
   };
 
   const handleDelete = async (cfg: ErpConfigResponse) => {
@@ -212,6 +220,10 @@ export default function ErpList() {
                           )}
                           품목 동기화
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenTemplate(cfg)}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          전표 템플릿 설정
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleEdit(cfg)}>
                           <Pencil className="mr-2 h-4 w-4" />
@@ -240,6 +252,17 @@ export default function ErpList() {
         config={editTarget}
         onSuccess={fetchConfigs}
       />
+
+      {templateTarget && (
+        <ErpSalesTemplateDialog
+          open={templateDialogOpen}
+          onOpenChange={(open) => {
+            setTemplateDialogOpen(open);
+            if (!open) setTemplateTarget(null);
+          }}
+          config={templateTarget}
+        />
+      )}
     </div>
   );
 }

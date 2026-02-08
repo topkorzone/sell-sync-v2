@@ -6,6 +6,7 @@ import {
   Package,
   Truck,
   DollarSign,
+  FileText,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ const menuItems = [
   { path: "/coupang-products", icon: Package, label: "쿠팡 상품" },
   { path: "/shipments", icon: Truck, label: "배송 관리" },
   { path: "/settlements", icon: DollarSign, label: "정산 관리" },
+  { path: "/erp-documents", icon: FileText, label: "전표 관리" },
   { path: "/settings", icon: Settings, label: "설정" },
 ];
 

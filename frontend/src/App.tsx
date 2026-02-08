@@ -13,6 +13,7 @@ import ProductMappings from "@/pages/ProductMappings";
 import CoupangProducts from "@/pages/CoupangProducts";
 import Shipments from "@/pages/Shipments";
 import Settlements from "@/pages/Settlements";
+import ErpDocuments from "@/pages/ErpDocuments";
 import Settings from "@/pages/Settings";
 
 function ProtectedLayout() {
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/coupang-products" element={<CoupangProducts />} />
           <Route path="/shipments" element={<Shipments />} />
           <Route path="/settlements" element={<Settlements />} />
+          <Route path="/erp-documents" element={<ErpDocuments />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

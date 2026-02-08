@@ -27,6 +27,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId AND o.erpSynced = false")
     long countUnsynced(@Param("tenantId") UUID tenantId);
 
+    List<Order> findByTenantIdAndErpSyncedFalse(UUID tenantId);
+
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items WHERE o.id = :id")
     Optional<Order> findByIdWithItems(@Param("id") UUID id);
 
@@ -85,4 +87,38 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     @Modifying
     @Query("UPDATE Order o SET o.settlementCollected = true WHERE o.id IN :orderIds")
     int markSettlementCollected(@Param("orderIds") List<UUID> orderIds);
+
+    /**
+     * 전표 미생성 주문 조회 (배송중/배송완료 상태, ERP 전표 없음)
+     */
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.items " +
+           "WHERE o.tenantId = :tenantId " +
+           "AND o.status IN :statuses " +
+           "AND NOT EXISTS (SELECT 1 FROM ErpSalesDocument d WHERE d.orderId = o.id AND d.status != 'CANCELLED')")
+    List<Order> findOrdersWithoutErpDocument(
+            @Param("tenantId") UUID tenantId,
+            @Param("statuses") List<OrderStatus> statuses);
+
+    /**
+     * 전표 미생성 주문 조회 (페이징)
+     */
+    @Query("SELECT o FROM Order o " +
+           "WHERE o.tenantId = :tenantId " +
+           "AND o.status IN :statuses " +
+           "AND NOT EXISTS (SELECT 1 FROM ErpSalesDocument d WHERE d.orderId = o.id AND d.status != 'CANCELLED')")
+    Page<Order> findOrdersWithoutErpDocument(
+            @Param("tenantId") UUID tenantId,
+            @Param("statuses") List<OrderStatus> statuses,
+            Pageable pageable);
+
+    /**
+     * 전표 미생성 주문 수 조회
+     */
+    @Query("SELECT COUNT(o) FROM Order o " +
+           "WHERE o.tenantId = :tenantId " +
+           "AND o.status IN :statuses " +
+           "AND NOT EXISTS (SELECT 1 FROM ErpSalesDocument d WHERE d.orderId = o.id AND d.status != 'CANCELLED')")
+    long countOrdersWithoutErpDocument(
+            @Param("tenantId") UUID tenantId,
+            @Param("statuses") List<OrderStatus> statuses);
 }

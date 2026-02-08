@@ -18,4 +18,9 @@ public interface ErpAdapter {
     record DocumentResult(boolean success, String documentId, String errorMessage, Map<String, Object> responseData) {}
     record DocumentStatus(String documentId, String status, Map<String, Object> details) {}
     record ItemFetchResult(boolean success, List<Map<String, Object>> items, String errorMessage, int totalCount) {}
+    record InventoryFetchResult(boolean success, List<Map<String, Object>> items, String errorMessage) {}
+
+    default InventoryFetchResult fetchInventoryBalance(TenantErpConfig config, String baseDate, List<String> prodCds) {
+        return new InventoryFetchResult(false, List.of(), "지원하지 않는 ERP 유형입니다");
+    }
 }

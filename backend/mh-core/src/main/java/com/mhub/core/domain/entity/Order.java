@@ -45,6 +45,9 @@ public class Order extends BaseEntity {
     @Column(name = "marketplace_status")
     private String marketplaceStatus;
 
+    @Column(name = "place_order_status")
+    private String placeOrderStatus;
+
     @Column(name = "buyer_name")
     private String buyerName;
 
@@ -76,8 +79,14 @@ public class Order extends BaseEntity {
     @Builder.Default
     private Boolean erpSynced = false;
 
+    @Column(name = "erp_document_id")
+    private String erpDocumentId;
+
     @Column(name = "expected_settlement_amount", precision = 15, scale = 2)
     private BigDecimal expectedSettlementAmount;
+
+    @Column(name = "estimated_delivery_commission", precision = 15, scale = 2)
+    private BigDecimal estimatedDeliveryCommission;
 
     @Column(name = "settlement_collected", nullable = false)
     @Builder.Default

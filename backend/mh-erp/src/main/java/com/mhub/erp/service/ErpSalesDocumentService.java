@@ -1,0 +1,498 @@
+package com.mhub.erp.service;
+
+import com.mhub.common.exception.BusinessException;
+import com.mhub.common.exception.ErrorCodes;
+import com.mhub.core.domain.entity.*;
+import com.mhub.core.domain.enums.ErpDocumentStatus;
+import com.mhub.core.domain.enums.OrderStatus;
+import com.mhub.core.domain.repository.*;
+import com.mhub.core.erp.dto.ErpBatchSendResult;
+import com.mhub.core.erp.dto.ErpSalesDocumentResponse;
+import com.mhub.core.service.ErpDocumentGenerator;
+import com.mhub.core.tenant.TenantContext;
+import com.mhub.erp.adapter.ErpAdapter;
+import com.mhub.erp.adapter.ecount.ECountAdapter;
+import com.mhub.erp.adapter.ecount.ECountSalesDocumentBuilder;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ErpSalesDocumentService implements ErpDocumentGenerator {
+
+    private final ErpSalesDocumentRepository documentRepository;
+    private final OrderRepository orderRepository;
+    private final OrderSettlementRepository orderSettlementRepository;
+    private final TenantErpConfigRepository erpConfigRepository;
+    private final ErpSalesTemplateRepository erpSalesTemplateRepository;
+    private final ECountSalesDocumentBuilder documentBuilder;
+    private final ErpAdapterFactory erpAdapterFactory;
+
+    /**
+     * 전표 생성 (출고 완료 시 호출)
+     */
+    @Transactional
+    public ErpSalesDocument generateDocument(UUID orderId) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        // 이미 활성 전표가 있는지 확인
+        if (documentRepository.existsActiveByOrderId(orderId)) {
+            log.debug("Active document already exists for order {}", orderId);
+            return documentRepository.findActiveByOrderId(orderId).orElseThrow();
+        }
+
+        Order order = orderRepository.findByIdWithItems(orderId)
+                .filter(o -> o.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new BusinessException(ErrorCodes.ORDER_NOT_FOUND, "주문을 찾을 수 없습니다"));
+
+        TenantErpConfig config = getActiveErpConfig(tenantId);
+        ErpSalesTemplate template = getActiveTemplate(tenantId, config.getId());
+        List<OrderSettlement> settlements = orderSettlementRepository.findByOrderId(orderId);
+
+        // ECount 전표 라인 생성
+        Map<String, Object> requestBody = documentBuilder.buildSaveSaleRequest(order, settlements, template);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> saleList = (List<Map<String, Object>>) requestBody.get("SaleList");
+
+        // 거래처 정보 추출
+        String customerCode = null;
+        String customerName = null;
+        if (saleList != null && !saleList.isEmpty()) {
+            Map<String, Object> firstLine = saleList.get(0);
+            customerCode = (String) firstLine.get("CUST");
+            customerName = (String) firstLine.get("CUST_DES");
+        }
+
+        ErpSalesDocument document = ErpSalesDocument.builder()
+                .tenantId(tenantId)
+                .orderId(orderId)
+                .erpConfigId(config.getId())
+                .status(ErpDocumentStatus.PENDING)
+                .documentDate(order.getOrderedAt() != null ? order.getOrderedAt().toLocalDate() : LocalDate.now())
+                .marketplaceType(order.getMarketplaceType())
+                .customerCode(customerCode)
+                .customerName(customerName)
+                .totalAmount(order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO)
+                .documentLines(saleList != null ? saleList : List.of())
+                .build();
+
+        document = documentRepository.save(document);
+        log.info("Generated ERP document {} for order {}", document.getId(), orderId);
+
+        return document;
+    }
+
+    /**
+     * 전표 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public Page<ErpSalesDocumentResponse> getDocuments(ErpDocumentStatus status, int page, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<ErpSalesDocument> documents;
+        if (status != null) {
+            documents = documentRepository.findByTenantIdAndStatus(tenantId, status, pageable);
+        } else {
+            documents = documentRepository.findByTenantId(tenantId, pageable);
+        }
+
+        // 주문 정보 조회
+        List<UUID> orderIds = documents.getContent().stream()
+                .map(ErpSalesDocument::getOrderId)
+                .distinct()
+                .toList();
+        Map<UUID, Order> orderMap = orderRepository.findAllById(orderIds).stream()
+                .collect(Collectors.toMap(Order::getId, Function.identity()));
+
+        return documents.map(doc -> {
+            Order order = orderMap.get(doc.getOrderId());
+            String marketplaceOrderId = order != null ? order.getMarketplaceOrderId() : null;
+            return ErpSalesDocumentResponse.from(doc, marketplaceOrderId);
+        });
+    }
+
+    /**
+     * 전표 상세 조회
+     */
+    @Transactional(readOnly = true)
+    public ErpSalesDocumentResponse getDocument(UUID documentId) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        ErpSalesDocument doc = documentRepository.findById(documentId)
+                .filter(d -> d.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new BusinessException(ErrorCodes.ERP_DOCUMENT_NOT_FOUND, "전표를 찾을 수 없습니다"));
+
+        Order order = orderRepository.findById(doc.getOrderId()).orElse(null);
+        String marketplaceOrderId = order != null ? order.getMarketplaceOrderId() : null;
+
+        return ErpSalesDocumentResponse.from(doc, marketplaceOrderId);
+    }
+
+    /**
+     * 전표 삭제 (취소)
+     */
+    @Transactional
+    public void cancelDocument(UUID documentId) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        ErpSalesDocument doc = documentRepository.findById(documentId)
+                .filter(d -> d.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new BusinessException(ErrorCodes.ERP_DOCUMENT_NOT_FOUND, "전표를 찾을 수 없습니다"));
+
+        if (!doc.canCancel()) {
+            throw new BusinessException(ErrorCodes.ERP_DOCUMENT_CANNOT_CANCEL,
+                    "전송 완료된 전표는 취소할 수 없습니다");
+        }
+
+        doc.cancel();
+        documentRepository.save(doc);
+        log.info("Cancelled ERP document {}", documentId);
+    }
+
+    /**
+     * 개별 전표 전송
+     */
+    @Transactional
+    public ErpSalesDocumentResponse sendDocument(UUID documentId) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        ErpSalesDocument doc = documentRepository.findById(documentId)
+                .filter(d -> d.getTenantId().equals(tenantId))
+                .orElseThrow(() -> new BusinessException(ErrorCodes.ERP_DOCUMENT_NOT_FOUND, "전표를 찾을 수 없습니다"));
+
+        if (!doc.canRetry()) {
+            throw new BusinessException(ErrorCodes.ERP_DOCUMENT_ALREADY_SENT,
+                    "이미 전송 완료된 전표입니다");
+        }
+
+        TenantErpConfig config = erpConfigRepository.findById(doc.getErpConfigId())
+                .orElseThrow(() -> new BusinessException(ErrorCodes.ERP_CONFIG_NOT_FOUND, "ERP 설정을 찾을 수 없습니다"));
+
+        try {
+            ECountAdapter adapter = (ECountAdapter) erpAdapterFactory.getAdapter(config.getErpType());
+            Map<String, Object> requestBody = Map.of("SaleList", doc.getDocumentLines());
+            ErpAdapter.DocumentResult result = adapter.createSaveSale(config, requestBody);
+
+            if (result.success()) {
+                doc.markAsSent(result.documentId());
+
+                // Order 엔티티도 업데이트
+                orderRepository.findById(doc.getOrderId()).ifPresent(order -> {
+                    order.setErpSynced(true);
+                    order.setErpDocumentId(result.documentId());
+                    orderRepository.save(order);
+                });
+
+                log.info("Sent ERP document {} with ERP document ID {}", documentId, result.documentId());
+            } else {
+                doc.markAsFailed(result.errorMessage());
+                log.warn("Failed to send ERP document {}: {}", documentId, result.errorMessage());
+            }
+
+            documentRepository.save(doc);
+
+        } catch (Exception e) {
+            log.error("Error sending ERP document {}", documentId, e);
+            doc.markAsFailed(e.getMessage());
+            documentRepository.save(doc);
+        }
+
+        Order order = orderRepository.findById(doc.getOrderId()).orElse(null);
+        String marketplaceOrderId = order != null ? order.getMarketplaceOrderId() : null;
+        return ErpSalesDocumentResponse.from(doc, marketplaceOrderId);
+    }
+
+    /**
+     * 일괄 전송
+     */
+    @Transactional
+    public ErpBatchSendResult sendAllPending() {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        List<ErpSalesDocument> pendingDocs = documentRepository.findByTenantIdAndStatusIn(
+                tenantId, List.of(ErpDocumentStatus.PENDING, ErpDocumentStatus.FAILED));
+
+        if (pendingDocs.isEmpty()) {
+            return new ErpBatchSendResult(0, 0, 0, List.of());
+        }
+
+        TenantErpConfig config = getActiveErpConfig(tenantId);
+        ECountAdapter adapter = (ECountAdapter) erpAdapterFactory.getAdapter(config.getErpType());
+
+        List<ErpBatchSendResult.SendItemResult> results = new ArrayList<>();
+        int successCount = 0;
+        int failCount = 0;
+
+        for (ErpSalesDocument doc : pendingDocs) {
+            try {
+                Map<String, Object> requestBody = Map.of("SaleList", doc.getDocumentLines());
+                ErpAdapter.DocumentResult result = adapter.createSaveSale(config, requestBody);
+
+                if (result.success()) {
+                    doc.markAsSent(result.documentId());
+
+                    // Order 엔티티도 업데이트
+                    orderRepository.findById(doc.getOrderId()).ifPresent(order -> {
+                        order.setErpSynced(true);
+                        order.setErpDocumentId(result.documentId());
+                        orderRepository.save(order);
+                    });
+
+                    results.add(new ErpBatchSendResult.SendItemResult(
+                            doc.getId(), doc.getOrderId(), true, result.documentId(), null));
+                    successCount++;
+                } else {
+                    doc.markAsFailed(result.errorMessage());
+                    results.add(new ErpBatchSendResult.SendItemResult(
+                            doc.getId(), doc.getOrderId(), false, null, result.errorMessage()));
+                    failCount++;
+                }
+
+            } catch (Exception e) {
+                doc.markAsFailed(e.getMessage());
+                results.add(new ErpBatchSendResult.SendItemResult(
+                        doc.getId(), doc.getOrderId(), false, null, e.getMessage()));
+                failCount++;
+            }
+
+            documentRepository.save(doc);
+        }
+
+        log.info("Batch send completed: total={}, success={}, fail={}", pendingDocs.size(), successCount, failCount);
+
+        return new ErpBatchSendResult(pendingDocs.size(), successCount, failCount, results);
+    }
+
+    /**
+     * 선택된 전표 일괄 전송
+     */
+    @Transactional
+    public ErpBatchSendResult sendSelected(List<UUID> documentIds) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        List<ErpSalesDocument> docs = documentRepository.findAllById(documentIds).stream()
+                .filter(d -> d.getTenantId().equals(tenantId))
+                .filter(ErpSalesDocument::canRetry)
+                .toList();
+
+        if (docs.isEmpty()) {
+            return new ErpBatchSendResult(0, 0, 0, List.of());
+        }
+
+        TenantErpConfig config = getActiveErpConfig(tenantId);
+        ECountAdapter adapter = (ECountAdapter) erpAdapterFactory.getAdapter(config.getErpType());
+
+        List<ErpBatchSendResult.SendItemResult> results = new ArrayList<>();
+        int successCount = 0;
+        int failCount = 0;
+
+        for (ErpSalesDocument doc : docs) {
+            try {
+                Map<String, Object> requestBody = Map.of("SaleList", doc.getDocumentLines());
+                ErpAdapter.DocumentResult result = adapter.createSaveSale(config, requestBody);
+
+                if (result.success()) {
+                    doc.markAsSent(result.documentId());
+
+                    orderRepository.findById(doc.getOrderId()).ifPresent(order -> {
+                        order.setErpSynced(true);
+                        order.setErpDocumentId(result.documentId());
+                        orderRepository.save(order);
+                    });
+
+                    results.add(new ErpBatchSendResult.SendItemResult(
+                            doc.getId(), doc.getOrderId(), true, result.documentId(), null));
+                    successCount++;
+                } else {
+                    doc.markAsFailed(result.errorMessage());
+                    results.add(new ErpBatchSendResult.SendItemResult(
+                            doc.getId(), doc.getOrderId(), false, null, result.errorMessage()));
+                    failCount++;
+                }
+
+            } catch (Exception e) {
+                doc.markAsFailed(e.getMessage());
+                results.add(new ErpBatchSendResult.SendItemResult(
+                        doc.getId(), doc.getOrderId(), false, null, e.getMessage()));
+                failCount++;
+            }
+
+            documentRepository.save(doc);
+        }
+
+        log.info("Selected batch send completed: total={}, success={}, fail={}", docs.size(), successCount, failCount);
+
+        return new ErpBatchSendResult(docs.size(), successCount, failCount, results);
+    }
+
+    /**
+     * 전표 재생성 (기존 취소 후 새로 생성)
+     */
+    @Transactional
+    public ErpSalesDocument regenerateDocument(UUID orderId) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        // 기존 활성 전표가 있으면 취소
+        documentRepository.findActiveByOrderId(orderId)
+                .filter(d -> d.getTenantId().equals(tenantId))
+                .ifPresent(doc -> {
+                    if (doc.canCancel()) {
+                        doc.cancel();
+                        documentRepository.save(doc);
+                        log.info("Cancelled existing document {} for regeneration", doc.getId());
+                    } else {
+                        throw new BusinessException(ErrorCodes.ERP_DOCUMENT_CANNOT_CANCEL,
+                                "전송 완료된 전표는 재생성할 수 없습니다");
+                    }
+                });
+
+        // 새 전표 생성
+        return generateDocument(orderId);
+    }
+
+    /**
+     * 전표 생성 가능 여부 확인
+     */
+    @Transactional(readOnly = true)
+    public boolean shouldGenerateDocument(UUID orderId) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        // 이미 활성 전표가 있는지 확인
+        if (documentRepository.existsActiveByOrderId(orderId)) {
+            return false;
+        }
+
+        // ERP 설정 확인
+        List<TenantErpConfig> configs = erpConfigRepository.findByTenantIdAndActiveTrue(tenantId);
+        if (configs.isEmpty()) {
+            return false;
+        }
+
+        // 템플릿 확인
+        TenantErpConfig config = configs.get(0);
+        Optional<ErpSalesTemplate> template = erpSalesTemplateRepository
+                .findByTenantIdAndErpConfigId(tenantId, config.getId());
+
+        return template.isPresent() && template.get().getActive();
+    }
+
+    /**
+     * 상태별 전표 수 조회
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Long> getDocumentCounts() {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Map<String, Long> counts = new HashMap<>();
+        for (ErpDocumentStatus status : ErpDocumentStatus.values()) {
+            if (status != ErpDocumentStatus.CANCELLED) {
+                counts.put(status.name(), documentRepository.countByTenantIdAndStatus(tenantId, status));
+            }
+        }
+
+        // 전표 미생성 주문 수도 포함
+        List<OrderStatus> eligibleStatuses = List.of(OrderStatus.SHIPPING, OrderStatus.DELIVERED);
+        counts.put("NEED_DOCUMENT", orderRepository.countOrdersWithoutErpDocument(tenantId, eligibleStatuses));
+
+        return counts;
+    }
+
+    /**
+     * 전표 미생성 주문 목록 조회 (배송중/배송완료)
+     */
+    @Transactional(readOnly = true)
+    public Page<Order> getOrdersWithoutDocument(int page, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+        List<OrderStatus> eligibleStatuses = List.of(OrderStatus.SHIPPING, OrderStatus.DELIVERED);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderedAt"));
+
+        return orderRepository.findOrdersWithoutErpDocument(tenantId, eligibleStatuses, pageable);
+    }
+
+    /**
+     * 선택된 주문에 대해 일괄 전표 생성
+     */
+    @Transactional
+    public Map<String, Object> generateDocumentsForOrders(List<UUID> orderIds) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        int successCount = 0;
+        int failCount = 0;
+        List<Map<String, Object>> results = new ArrayList<>();
+
+        for (UUID orderId : orderIds) {
+            try {
+                // 이미 전표가 있는지 확인
+                if (documentRepository.existsActiveByOrderId(orderId)) {
+                    results.add(Map.of("orderId", orderId, "success", false, "error", "이미 전표가 존재합니다"));
+                    failCount++;
+                    continue;
+                }
+
+                ErpSalesDocument doc = generateDocument(orderId);
+                results.add(Map.of("orderId", orderId, "success", true, "documentId", doc.getId()));
+                successCount++;
+            } catch (Exception e) {
+                log.warn("Failed to generate document for order {}: {}", orderId, e.getMessage());
+                results.add(Map.of("orderId", orderId, "success", false, "error", e.getMessage()));
+                failCount++;
+            }
+        }
+
+        log.info("Bulk document generation completed: total={}, success={}, fail={}",
+                orderIds.size(), successCount, failCount);
+
+        return Map.of(
+                "totalCount", orderIds.size(),
+                "successCount", successCount,
+                "failCount", failCount,
+                "results", results
+        );
+    }
+
+    /**
+     * ErpDocumentGenerator 인터페이스 구현 - 전표 생성 시도 (실패해도 예외 발생하지 않음)
+     */
+    @Override
+    @Transactional
+    public void tryGenerateDocument(UUID orderId) {
+        try {
+            if (shouldGenerateDocument(orderId)) {
+                generateDocument(orderId);
+                log.info("Auto-generated ERP document for order {}", orderId);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to auto-generate ERP document for order {}: {}", orderId, e.getMessage());
+            // 전표 생성 실패해도 예외 발생하지 않음
+        }
+    }
+
+    private TenantErpConfig getActiveErpConfig(UUID tenantId) {
+        List<TenantErpConfig> configs = erpConfigRepository.findByTenantIdAndActiveTrue(tenantId);
+        if (configs.isEmpty()) {
+            throw new BusinessException(ErrorCodes.ERP_CONFIG_NOT_FOUND, "활성화된 ERP 설정이 없습니다");
+        }
+        return configs.get(0);
+    }
+
+    private ErpSalesTemplate getActiveTemplate(UUID tenantId, UUID erpConfigId) {
+        return erpSalesTemplateRepository.findByTenantIdAndErpConfigId(tenantId, erpConfigId)
+                .filter(ErpSalesTemplate::getActive)
+                .orElseThrow(() -> new BusinessException(ErrorCodes.ERP_TEMPLATE_NOT_FOUND,
+                        "전표 템플릿이 설정되지 않았습니다. 설정 > ERP에서 전표 템플릿을 먼저 설정해주세요."));
+    }
+}
