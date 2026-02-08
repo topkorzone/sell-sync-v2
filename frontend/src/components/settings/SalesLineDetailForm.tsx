@@ -256,6 +256,7 @@ function LineSettingRow({
           금액이 0원이면 제외
         </label>
       </div>
+      {/* ECount 필드 매핑은 글로벌 설정으로 이동됨 (GlobalFieldMappingSection) */}
     </div>
   );
 }

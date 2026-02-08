@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { SalesLineTemplate, MarketplaceType } from "@/types";
+import type { SalesLineTemplate, AdditionalLineTemplate, MarketplaceType } from "@/types";
 
 interface SalesTemplatePreviewProps {
   defaultHeader: Record<string, string>;
@@ -8,6 +8,7 @@ interface SalesTemplatePreviewProps {
   lineDeliveryFee: SalesLineTemplate;
   lineSalesCommission: SalesLineTemplate;
   lineDeliveryCommission: SalesLineTemplate;
+  additionalLines?: AdditionalLineTemplate[];
   selectedMarketplace?: MarketplaceType;
 }
 
@@ -59,6 +60,7 @@ export default function SalesTemplatePreview({
   lineDeliveryFee,
   lineSalesCommission,
   lineDeliveryCommission,
+  additionalLines = [],
   selectedMarketplace = "COUPANG",
 }: SalesTemplatePreviewProps) {
   // 마켓별 헤더 병합
@@ -168,8 +170,32 @@ export default function SalesTemplatePreview({
       }
     }
 
+    // 5. 추가 항목
+    for (const addLine of additionalLines) {
+      if (!addLine.enabled || !addLine.prodDes) continue;
+
+      const qty = addLine.qty || 1;
+      const totalAmount = (addLine.unitPrice || 0) * qty;
+      const amount = addLine.negateAmount ? -totalAmount : totalAmount;
+      const supplyPrice =
+        addLine.vatCalculation === "SUPPLY_DIV_11"
+          ? Math.round(amount / 1.1)
+          : amount;
+      const vat = amount - supplyPrice;
+
+      result.push({
+        prodCd: addLine.prodCd || "",
+        prodDes: addLine.prodDes,
+        qty,
+        unitPrice: addLine.unitPrice || 0,
+        supplyPrice,
+        vat,
+        total: amount,
+      });
+    }
+
     return result;
-  }, [lineProductSale, lineDeliveryFee, lineSalesCommission, lineDeliveryCommission]);
+  }, [lineProductSale, lineDeliveryFee, lineSalesCommission, lineDeliveryCommission, additionalLines]);
 
   // 합계 계산
   const totals = useMemo(() => {

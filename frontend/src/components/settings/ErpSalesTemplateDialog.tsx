@@ -18,16 +18,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import type {
   ErpConfigResponse,
   SalesLineTemplate,
+  AdditionalLineTemplate,
   ErpSalesTemplateResponse,
   ErpSalesTemplateRequest,
   ApiResponse,
   MarketplaceType,
+  GlobalFieldMapping,
 } from "@/types";
 import SalesTemplatePresets, {
   TEMPLATE_PRESETS,
@@ -37,6 +39,7 @@ import SalesTemplatePresets, {
 } from "./SalesTemplatePresets";
 import SalesTemplatePreview from "./SalesTemplatePreview";
 import SalesLineDetailForm from "./SalesLineDetailForm";
+import GlobalFieldMappingSection from "./GlobalFieldMappingSection";
 import {
   Tooltip,
   TooltipContent,
@@ -163,6 +166,12 @@ export default function ErpSalesTemplateDialog({
   const [lineSalesCommission, setLineSalesCommission] = useState<SalesLineTemplate>(emptyLine());
   const [lineDeliveryCommission, setLineDeliveryCommission] = useState<SalesLineTemplate>(emptyLine());
 
+  // 추가 항목 state
+  const [additionalLines, setAdditionalLines] = useState<AdditionalLineTemplate[]>([]);
+
+  // 글로벌 필드 매핑 state
+  const [globalFieldMappings, setGlobalFieldMappings] = useState<GlobalFieldMapping[]>([]);
+
   // 프리셋 기본값 적용
   const applyPreset = useCallback((presetId: PresetId) => {
     const preset = TEMPLATE_PRESETS.find((p) => p.id === presetId);
@@ -202,6 +211,8 @@ export default function ErpSalesTemplateDialog({
         setLineDeliveryFee(t.lineDeliveryFee ?? emptyLine());
         setLineSalesCommission(t.lineSalesCommission ?? emptyLine());
         setLineDeliveryCommission(t.lineDeliveryCommission ?? emptyLine());
+        setAdditionalLines(t.additionalLines ?? []);
+        setGlobalFieldMappings(t.globalFieldMappings ?? []);
 
         // 프리셋 자동 감지
         const detected = detectPresetFromLines(
@@ -235,7 +246,37 @@ export default function ErpSalesTemplateDialog({
       setLineSalesCommission(applyPresetToLine(emptyLine(), preset.lines.salesCommission));
       setLineDeliveryCommission(applyPresetToLine(emptyLine(), preset.lines.deliveryCommission));
     }
+    setAdditionalLines([]);
+    setGlobalFieldMappings([]);
     setStep(1);
+  };
+
+  // 추가 항목 관리 함수
+  const addAdditionalLine = () => {
+    setAdditionalLines((prev) => [
+      ...prev,
+      {
+        prodCd: "",
+        prodDes: "",
+        whCd: "",
+        qty: 1,
+        unitPrice: 0,
+        vatCalculation: "SUPPLY_DIV_11",
+        negateAmount: false,
+        remarks: "",
+        enabled: true,
+      },
+    ]);
+  };
+
+  const updateAdditionalLine = (index: number, field: keyof AdditionalLineTemplate, value: unknown) => {
+    setAdditionalLines((prev) =>
+      prev.map((line, i) => (i === index ? { ...line, [field]: value } : line))
+    );
+  };
+
+  const removeAdditionalLine = (index: number) => {
+    setAdditionalLines((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -256,6 +297,8 @@ export default function ErpSalesTemplateDialog({
         lineDeliveryFee,
         lineSalesCommission,
         lineDeliveryCommission,
+        additionalLines,
+        globalFieldMappings,
         active: true,
       };
       await api.put(`/api/v1/settings/erp/${config.id}/sales-template`, request);
@@ -473,18 +516,202 @@ export default function ErpSalesTemplateDialog({
                   </>
                 ) : (
                   /* Step 2: 세부 설정 */
-                  <SalesLineDetailForm
-                    selectedPreset={selectedPreset}
-                    lineProductSale={lineProductSale}
-                    setLineProductSale={setLineProductSale}
-                    lineDeliveryFee={lineDeliveryFee}
-                    setLineDeliveryFee={setLineDeliveryFee}
-                    lineSalesCommission={lineSalesCommission}
-                    setLineSalesCommission={setLineSalesCommission}
-                    lineDeliveryCommission={lineDeliveryCommission}
-                    setLineDeliveryCommission={setLineDeliveryCommission}
-                    enabledMarketplaces={enabledMarketplaces}
-                  />
+                  <div className="space-y-6">
+                    {/* 글로벌 필드 매핑 섹션 */}
+                    <GlobalFieldMappingSection
+                      fieldMappings={globalFieldMappings}
+                      onChange={setGlobalFieldMappings}
+                    />
+
+                    <SalesLineDetailForm
+                      selectedPreset={selectedPreset}
+                      lineProductSale={lineProductSale}
+                      setLineProductSale={setLineProductSale}
+                      lineDeliveryFee={lineDeliveryFee}
+                      setLineDeliveryFee={setLineDeliveryFee}
+                      lineSalesCommission={lineSalesCommission}
+                      setLineSalesCommission={setLineSalesCommission}
+                      lineDeliveryCommission={lineDeliveryCommission}
+                      setLineDeliveryCommission={setLineDeliveryCommission}
+                      enabledMarketplaces={enabledMarketplaces}
+                    />
+
+                    {/* 추가 항목 섹션 */}
+                    <div className="space-y-3 border-t pt-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-medium">추가 항목</div>
+                          <div className="text-xs text-muted-foreground">
+                            전표 생성 시 자동으로 포함되는 항목들입니다
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={addAdditionalLine}
+                        >
+                          <Plus className="mr-1 h-4 w-4" />
+                          항목 추가
+                        </Button>
+                      </div>
+
+                      {additionalLines.length === 0 ? (
+                        <div className="text-center py-4 text-sm text-muted-foreground border rounded-lg">
+                          추가 항목이 없습니다
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {additionalLines.map((line, index) => (
+                            <div
+                              key={index}
+                              className={`border rounded-lg p-3 space-y-3 ${
+                                !line.enabled ? "opacity-50" : ""
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <label className="flex items-center gap-2 text-sm">
+                                  <Checkbox
+                                    checked={line.enabled}
+                                    onCheckedChange={(checked) =>
+                                      updateAdditionalLine(index, "enabled", !!checked)
+                                    }
+                                  />
+                                  활성화
+                                </label>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-red-500 hover:text-red-700"
+                                  onClick={() => removeAdditionalLine(index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">품목코드</Label>
+                                  <Input
+                                    value={line.prodCd}
+                                    onChange={(e) =>
+                                      updateAdditionalLine(index, "prodCd", e.target.value)
+                                    }
+                                    placeholder="품목코드"
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                                <div className="col-span-2 space-y-1">
+                                  <Label className="text-xs">품목명 *</Label>
+                                  <Input
+                                    value={line.prodDes}
+                                    onChange={(e) =>
+                                      updateAdditionalLine(index, "prodDes", e.target.value)
+                                    }
+                                    placeholder="품목명"
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-4 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">창고코드</Label>
+                                  <Input
+                                    value={line.whCd || ""}
+                                    onChange={(e) =>
+                                      updateAdditionalLine(index, "whCd", e.target.value)
+                                    }
+                                    placeholder="창고코드"
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">수량</Label>
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    value={line.qty}
+                                    onChange={(e) =>
+                                      updateAdditionalLine(
+                                        index,
+                                        "qty",
+                                        parseInt(e.target.value) || 1
+                                      )
+                                    }
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">단가 (VAT포함)</Label>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    value={line.unitPrice}
+                                    onChange={(e) =>
+                                      updateAdditionalLine(
+                                        index,
+                                        "unitPrice",
+                                        parseFloat(e.target.value) || 0
+                                      )
+                                    }
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">VAT 계산</Label>
+                                  <Select
+                                    value={line.vatCalculation}
+                                    onValueChange={(v) =>
+                                      updateAdditionalLine(index, "vatCalculation", v)
+                                    }
+                                  >
+                                    <SelectTrigger className="h-8 text-sm">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="SUPPLY_DIV_11">
+                                        과세 (1/11)
+                                      </SelectItem>
+                                      <SelectItem value="NO_VAT">면세</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">적요</Label>
+                                  <Input
+                                    value={line.remarks || ""}
+                                    onChange={(e) =>
+                                      updateAdditionalLine(index, "remarks", e.target.value)
+                                    }
+                                    placeholder="적요"
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                                <div className="flex items-end pb-1">
+                                  <label className="flex items-center gap-2 text-sm">
+                                    <Checkbox
+                                      checked={line.negateAmount}
+                                      onCheckedChange={(checked) =>
+                                        updateAdditionalLine(
+                                          index,
+                                          "negateAmount",
+                                          !!checked
+                                        )
+                                      }
+                                    />
+                                    마이너스 금액 (수수료 등)
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -497,6 +724,7 @@ export default function ErpSalesTemplateDialog({
                   lineDeliveryFee={lineDeliveryFee}
                   lineSalesCommission={lineSalesCommission}
                   lineDeliveryCommission={lineDeliveryCommission}
+                  additionalLines={additionalLines}
                   selectedMarketplace={previewMarketplace}
                 />
               </div>

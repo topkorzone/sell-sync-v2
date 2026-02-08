@@ -5,6 +5,7 @@ import com.mhub.common.exception.ErrorCodes;
 import com.mhub.core.domain.entity.ErpSalesTemplate;
 import com.mhub.core.domain.repository.ErpSalesTemplateRepository;
 import com.mhub.core.domain.repository.TenantErpConfigRepository;
+import com.mhub.core.erp.dto.AdditionalLineTemplateDto;
 import com.mhub.core.erp.dto.ErpSalesTemplateRequest;
 import com.mhub.core.erp.dto.ErpSalesTemplateResponse;
 import com.mhub.core.erp.dto.SalesLineTemplateDto;
@@ -14,9 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -55,6 +55,8 @@ public class ErpSalesTemplateService {
         template.setLineDeliveryFee(lineToMap(request.lineDeliveryFee()));
         template.setLineSalesCommission(lineToMap(request.lineSalesCommission()));
         template.setLineDeliveryCommission(lineToMap(request.lineDeliveryCommission()));
+        template.setAdditionalLines(additionalLinesToMapList(request.additionalLines()));
+        template.setGlobalFieldMappings(request.globalFieldMappings() != null ? request.globalFieldMappings() : List.of());
         template.setActive(request.active());
 
         templateRepository.save(template);
@@ -103,5 +105,26 @@ public class ErpSalesTemplateService {
             map.put("marketplaceProdCds", dto.marketplaceProdCds());
         }
         return map;
+    }
+
+    private List<Map<String, Object>> additionalLinesToMapList(List<AdditionalLineTemplateDto> additionalLines) {
+        if (additionalLines == null || additionalLines.isEmpty()) {
+            return List.of();
+        }
+        return additionalLines.stream()
+                .map(dto -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("prodCd", dto.prodCd());
+                    map.put("prodDes", dto.prodDes());
+                    map.put("whCd", dto.whCd());
+                    map.put("qty", dto.qty());
+                    map.put("unitPrice", dto.unitPrice());
+                    map.put("vatCalculation", dto.vatCalculation());
+                    map.put("negateAmount", dto.negateAmount());
+                    map.put("remarks", dto.remarks());
+                    map.put("enabled", dto.enabled());
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
 }

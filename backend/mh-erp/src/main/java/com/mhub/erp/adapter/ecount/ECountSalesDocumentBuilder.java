@@ -52,6 +52,13 @@ public class ECountSalesDocumentBuilder {
             }
         }
 
+        // 글로벌 필드 매핑 가져오기
+        List<Map<String, Object>> globalMappings = template.getGlobalFieldMappings();
+        if (globalMappings == null) {
+            globalMappings = List.of();
+        }
+        log.info("Global field mappings loaded: count={}, data={}", globalMappings.size(), globalMappings);
+
         List<Map<String, Object>> lines = new ArrayList<>();
         int lineNo = 1;
 
@@ -94,13 +101,16 @@ public class ECountSalesDocumentBuilder {
 
             // 금액 계산
             BigDecimal amount = item.getTotalPrice();
-            applyVatCalculation(line, amount, getStringField(prodTemplate, "vatCalculation", "SUPPLY_DIV_11"));
+            VatResult vatResult = calculateVat(amount, getStringField(prodTemplate, "vatCalculation", "SUPPLY_DIV_11"));
+            applyVatToLine(line, vatResult);
 
             // 적요
             String remarks = getStringField(prodTemplate, "remarks", "");
             if (!remarks.isBlank()) line.put("REMARKS", remarks);
 
             applyExtraFields(line, prodTemplate);
+            // 글로벌 필드 매핑 적용 (PRODUCT_SALE 라인)
+            applyGlobalFieldMappings(line, globalMappings, "PRODUCT_SALE", order, item, amount, vatResult.supplyAmt, vatResult.vatAmt, item.getQuantity());
             lines.add(line);
         }
 
@@ -115,11 +125,14 @@ public class ECountSalesDocumentBuilder {
             line.put("PROD_CD", getStringField(delFeeTemplate, "prodCd", ""));
             line.put("PROD_DES", getStringField(delFeeTemplate, "prodDes", "배송비"));
             line.put("QTY", "1");
-            applyVatCalculation(line, deliveryFee, getStringField(delFeeTemplate, "vatCalculation", "SUPPLY_DIV_11"));
+            VatResult delFeeVat = calculateVat(deliveryFee, getStringField(delFeeTemplate, "vatCalculation", "SUPPLY_DIV_11"));
+            applyVatToLine(line, delFeeVat);
             if (getBoolField(delFeeTemplate, "negateAmount")) negateAmounts(line);
             String remarks = getStringField(delFeeTemplate, "remarks", "");
             if (!remarks.isBlank()) line.put("REMARKS", remarks);
             applyExtraFields(line, delFeeTemplate);
+            // 글로벌 필드 매핑 적용 (DELIVERY_FEE 라인)
+            applyGlobalFieldMappings(line, globalMappings, "DELIVERY_FEE", order, null, deliveryFee, delFeeVat.supplyAmt, delFeeVat.vatAmt, 1);
             lines.add(line);
         }
 
@@ -137,11 +150,14 @@ public class ECountSalesDocumentBuilder {
             line.put("PROD_CD", commProdCd.isBlank() ? getStringField(commTemplate, "prodCd", "") : commProdCd);
             line.put("PROD_DES", commProdDes.isBlank() ? getStringField(commTemplate, "prodDes", "판매수수료") : commProdDes);
             line.put("QTY", "1");
-            applyVatCalculation(line, commissionAmount, getStringField(commTemplate, "vatCalculation", "SUPPLY_DIV_11"));
+            VatResult commVat = calculateVat(commissionAmount, getStringField(commTemplate, "vatCalculation", "SUPPLY_DIV_11"));
+            applyVatToLine(line, commVat);
             if (getBoolField(commTemplate, "negateAmount")) negateAmounts(line);
             String remarks = getStringField(commTemplate, "remarks", "");
             if (!remarks.isBlank()) line.put("REMARKS", remarks);
             applyExtraFields(line, commTemplate);
+            // 글로벌 필드 매핑 적용 (SALES_COMMISSION 라인)
+            applyGlobalFieldMappings(line, globalMappings, "SALES_COMMISSION", order, null, commissionAmount, commVat.supplyAmt, commVat.vatAmt, 1);
             lines.add(line);
         }
 
@@ -159,17 +175,75 @@ public class ECountSalesDocumentBuilder {
             line.put("PROD_CD", delCommProdCd.isBlank() ? getStringField(delCommTemplate, "prodCd", "") : delCommProdCd);
             line.put("PROD_DES", delCommProdDes.isBlank() ? getStringField(delCommTemplate, "prodDes", "배송수수료") : delCommProdDes);
             line.put("QTY", "1");
-            applyVatCalculation(line, deliveryCommission, getStringField(delCommTemplate, "vatCalculation", "SUPPLY_DIV_11"));
+            VatResult delCommVat = calculateVat(deliveryCommission, getStringField(delCommTemplate, "vatCalculation", "SUPPLY_DIV_11"));
+            applyVatToLine(line, delCommVat);
             if (getBoolField(delCommTemplate, "negateAmount")) negateAmounts(line);
             String remarks = getStringField(delCommTemplate, "remarks", "");
             if (!remarks.isBlank()) line.put("REMARKS", remarks);
             applyExtraFields(line, delCommTemplate);
+            // 글로벌 필드 매핑 적용 (DELIVERY_COMMISSION 라인)
+            applyGlobalFieldMappings(line, globalMappings, "DELIVERY_COMMISSION", order, null, deliveryCommission, delCommVat.supplyAmt, delCommVat.vatAmt, 1);
             lines.add(line);
+        }
+
+        // 5) 추가 항목 라인 (템플릿에 설정된 추가 라인들)
+        List<Map<String, Object>> additionalLines = template.getAdditionalLines();
+        if (additionalLines != null) {
+            for (Map<String, Object> addLineTemplate : additionalLines) {
+                // 활성화된 항목만 처리
+                if (!getBoolField(addLineTemplate, "enabled")) {
+                    continue;
+                }
+
+                Map<String, Object> line = buildBaseLine(header, ioDate, uploadSerNo, lineNo++);
+
+                // 창고코드
+                String addWhCd = getStringField(addLineTemplate, "whCd", "");
+                if (!addWhCd.isBlank()) {
+                    line.put("WH_CD", addWhCd);
+                } else if (defaultWhCd != null) {
+                    line.put("WH_CD", defaultWhCd);
+                }
+
+                // 품목코드/품목명
+                String addProdCd = getStringField(addLineTemplate, "prodCd", "");
+                if (!addProdCd.isBlank()) {
+                    line.put("PROD_CD", addProdCd);
+                }
+                line.put("PROD_DES", getStringField(addLineTemplate, "prodDes", ""));
+
+                // 수량
+                Object qtyObj = addLineTemplate.get("qty");
+                int addQty = qtyObj != null ? Integer.parseInt(qtyObj.toString()) : 1;
+                line.put("QTY", String.valueOf(addQty));
+
+                // 금액 계산
+                Object unitPriceObj = addLineTemplate.get("unitPrice");
+                BigDecimal unitPrice = unitPriceObj != null
+                        ? new BigDecimal(unitPriceObj.toString())
+                        : BigDecimal.ZERO;
+                BigDecimal addAmount = unitPrice.multiply(BigDecimal.valueOf(addQty));
+
+                applyVatCalculation(line, addAmount, getStringField(addLineTemplate, "vatCalculation", "SUPPLY_DIV_11"));
+                if (getBoolField(addLineTemplate, "negateAmount")) {
+                    negateAmounts(line);
+                }
+
+                String addRemarks = getStringField(addLineTemplate, "remarks", "");
+                if (!addRemarks.isBlank()) {
+                    line.put("REMARKS", addRemarks);
+                }
+
+                lines.add(line);
+            }
         }
 
         // ECount API 형식: SaleList 내 각 요소는 { "BulkDatas": {...} } 형태
         List<Map<String, Object>> saleList = new ArrayList<>();
         for (Map<String, Object> line : lines) {
+            // 최종 라인 데이터 로깅 (REMARKS, USER_PRICE_VAT 등 확인용)
+            log.info("Final line data - PROD_DES={}, REMARKS={}, USER_PRICE_VAT={}, P_REMARKS1={}",
+                    line.get("PROD_DES"), line.get("REMARKS"), line.get("USER_PRICE_VAT"), line.get("P_REMARKS1"));
             Map<String, Object> wrapper = new LinkedHashMap<>();
             wrapper.put("BulkDatas", line);
             saleList.add(wrapper);
@@ -365,21 +439,47 @@ public class ECountSalesDocumentBuilder {
         return line;
     }
 
-    private void applyVatCalculation(Map<String, Object> line, BigDecimal totalAmount, String method) {
+    /**
+     * VAT 계산 결과를 담는 record
+     */
+    private record VatResult(BigDecimal supplyAmt, BigDecimal vatAmt, BigDecimal totalAmount) {}
+
+    /**
+     * VAT 계산 (결과를 반환)
+     */
+    private VatResult calculateVat(BigDecimal totalAmount, String method) {
         if (totalAmount == null) totalAmount = BigDecimal.ZERO;
 
         if ("NO_VAT".equals(method)) {
-            line.put("SUPPLY_AMT", totalAmount.setScale(0, RoundingMode.HALF_UP).toPlainString());
-            line.put("VAT_AMT", "0");
-            line.put("PRICE", totalAmount.setScale(0, RoundingMode.HALF_UP).toPlainString());
+            return new VatResult(
+                    totalAmount.setScale(0, RoundingMode.HALF_UP),
+                    BigDecimal.ZERO,
+                    totalAmount.setScale(0, RoundingMode.HALF_UP)
+            );
         } else {
             // SUPPLY_DIV_11 (기본): VAT = round(총액/11), 공급가 = 총액 - VAT
             BigDecimal vatAmt = totalAmount.divide(BigDecimal.valueOf(11), 0, RoundingMode.HALF_UP);
             BigDecimal supplyAmt = totalAmount.subtract(vatAmt);
-            line.put("SUPPLY_AMT", supplyAmt.setScale(0, RoundingMode.HALF_UP).toPlainString());
-            line.put("VAT_AMT", vatAmt.setScale(0, RoundingMode.HALF_UP).toPlainString());
-            line.put("PRICE", totalAmount.setScale(0, RoundingMode.HALF_UP).toPlainString());
+            return new VatResult(
+                    supplyAmt.setScale(0, RoundingMode.HALF_UP),
+                    vatAmt.setScale(0, RoundingMode.HALF_UP),
+                    totalAmount.setScale(0, RoundingMode.HALF_UP)
+            );
         }
+    }
+
+    /**
+     * VAT 결과를 라인에 적용
+     */
+    private void applyVatToLine(Map<String, Object> line, VatResult vatResult) {
+        line.put("SUPPLY_AMT", vatResult.supplyAmt.toPlainString());
+        line.put("VAT_AMT", vatResult.vatAmt.toPlainString());
+        line.put("PRICE", vatResult.totalAmount.toPlainString());
+    }
+
+    private void applyVatCalculation(Map<String, Object> line, BigDecimal totalAmount, String method) {
+        VatResult result = calculateVat(totalAmount, method);
+        applyVatToLine(line, result);
     }
 
     private void negateAmounts(Map<String, Object> line) {
@@ -507,6 +607,158 @@ public class ECountSalesDocumentBuilder {
                 }
             });
         }
+    }
+
+    /**
+     * 글로벌 필드 매핑을 라인에 적용
+     * lineTypes에 따라 해당 라인 타입에만 적용
+     *
+     * @param line 전표 라인 데이터
+     * @param globalMappings 글로벌 필드 매핑 목록
+     * @param lineType 현재 라인 타입 (PRODUCT_SALE, DELIVERY_FEE, SALES_COMMISSION, DELIVERY_COMMISSION)
+     * @param order 주문 정보
+     * @param item 주문 상품 (null 가능)
+     * @param totalAmount 라인 총금액
+     * @param supplyAmt 공급가액
+     * @param vatAmt 부가세액
+     * @param quantity 수량 (단가 계산용)
+     */
+    @SuppressWarnings("unchecked")
+    private void applyGlobalFieldMappings(
+            Map<String, Object> line,
+            List<Map<String, Object>> globalMappings,
+            String lineType,
+            Order order,
+            OrderItem item,
+            BigDecimal totalAmount,
+            BigDecimal supplyAmt,
+            BigDecimal vatAmt,
+            int quantity) {
+
+        if (globalMappings == null || globalMappings.isEmpty()) {
+            log.debug("No global field mappings to apply");
+            return;
+        }
+
+        log.debug("Applying {} global field mappings to lineType={}", globalMappings.size(), lineType);
+
+        for (Map<String, Object> mapping : globalMappings) {
+            // lineTypes 체크: ALL이거나 현재 라인 타입이 포함되어 있으면 적용
+            Object lineTypesObj = mapping.get("lineTypes");
+            if (lineTypesObj != null) {
+                if (lineTypesObj instanceof List) {
+                    List<String> lineTypes = (List<String>) lineTypesObj;
+                    // ALL이 포함되어 있거나 현재 라인 타입이 포함되어 있으면 적용
+                    if (!lineTypes.contains("ALL") && !lineTypes.contains(lineType)) {
+                        log.debug("Skipping mapping {} - lineTypes {} does not match {}",
+                                mapping.get("fieldName"), lineTypes, lineType);
+                        continue;
+                    }
+                } else if (lineTypesObj instanceof String) {
+                    String lineTypesStr = (String) lineTypesObj;
+                    if (!"ALL".equals(lineTypesStr) && !lineType.equals(lineTypesStr)) {
+                        continue;
+                    }
+                }
+            }
+            // lineTypes가 null이면 모든 라인에 적용
+
+            String fieldName = getStringField(mapping, "fieldName", "");
+            String valueSource = getStringField(mapping, "valueSource", "FIXED");
+            String fixedValue = getStringField(mapping, "fixedValue", "");
+            String templateValue = getStringField(mapping, "templateValue", "");
+
+            if (fieldName.isBlank()) {
+                continue;
+            }
+
+            String resolvedValue = resolveFieldValue(
+                    valueSource, fixedValue, templateValue,
+                    order, item, totalAmount, supplyAmt, vatAmt, quantity
+            );
+
+            log.debug("Global field mapping: {}={} (source={}, lineType={})",
+                    fieldName, resolvedValue, valueSource, lineType);
+
+            if (resolvedValue != null && !resolvedValue.isBlank()) {
+                line.put(fieldName, resolvedValue);
+            }
+        }
+    }
+
+    /**
+     * 값 소스에 따라 실제 값을 해석
+     *
+     * @param valueSource 값 소스 타입
+     * @param fixedValue 고정값 (FIXED 소스용)
+     * @param templateValue 템플릿 문자열 (TEMPLATE 소스용)
+     * @param order 주문 정보
+     * @param item 주문 상품 (null 가능)
+     * @param totalAmount 라인 총금액
+     * @param supplyAmt 공급가액
+     * @param vatAmt 부가세액
+     * @param quantity 수량 (단가 계산용)
+     */
+    private String resolveFieldValue(
+            String valueSource,
+            String fixedValue,
+            String templateValue,
+            Order order,
+            OrderItem item,
+            BigDecimal totalAmount,
+            BigDecimal supplyAmt,
+            BigDecimal vatAmt,
+            int quantity) {
+
+        return switch (valueSource) {
+            case "FIXED" -> fixedValue;
+            case "ORDER_ID" -> order.getId() != null ? order.getId().toString() : "";
+            case "MARKETPLACE_ORDER_ID" -> order.getMarketplaceOrderId() != null ? order.getMarketplaceOrderId() : "";
+            case "BUYER_NAME" -> order.getBuyerName() != null ? order.getBuyerName() : "";
+            case "RECEIVER_NAME" -> order.getReceiverName() != null ? order.getReceiverName() : "";
+            case "PRODUCT_NAME" -> item != null && item.getProductName() != null ? item.getProductName() : "";
+            case "OPTION_NAME" -> item != null && item.getOptionName() != null ? item.getOptionName() : "";
+            case "UNIT_PRICE_VAT" -> {
+                // 단가 = 총금액 / 수량
+                if (totalAmount == null || quantity <= 0) {
+                    yield "0";
+                }
+                BigDecimal unitPrice = totalAmount.divide(BigDecimal.valueOf(quantity), 0, RoundingMode.HALF_UP);
+                yield unitPrice.toPlainString();
+            }
+            case "TOTAL_AMOUNT" -> totalAmount != null ? totalAmount.setScale(0, RoundingMode.HALF_UP).toPlainString() : "0";
+            case "SUPPLY_AMOUNT" -> supplyAmt != null ? supplyAmt.setScale(0, RoundingMode.HALF_UP).toPlainString() : "0";
+            case "VAT_AMOUNT" -> vatAmt != null ? vatAmt.setScale(0, RoundingMode.HALF_UP).toPlainString() : "0";
+            case "TEMPLATE" -> resolveTemplate(templateValue, order, item);
+            default -> "";
+        };
+    }
+
+    /**
+     * 템플릿 문자열에서 변수를 실제 값으로 치환
+     * 예: "주문:{orderId} / {buyerName}" -> "주문:123 / 홍길동"
+     */
+    private String resolveTemplate(String template, Order order, OrderItem item) {
+        if (template == null || template.isBlank()) {
+            return "";
+        }
+
+        String result = template;
+        result = result.replace("{orderId}", order.getId() != null ? order.getId().toString() : "");
+        result = result.replace("{marketplaceOrderId}", order.getMarketplaceOrderId() != null ? order.getMarketplaceOrderId() : "");
+        result = result.replace("{buyerName}", order.getBuyerName() != null ? order.getBuyerName() : "");
+        result = result.replace("{receiverName}", order.getReceiverName() != null ? order.getReceiverName() : "");
+        result = result.replace("{marketplace}", order.getMarketplaceType() != null ? order.getMarketplaceType().name() : "");
+
+        if (item != null) {
+            result = result.replace("{productName}", item.getProductName() != null ? item.getProductName() : "");
+            result = result.replace("{optionName}", item.getOptionName() != null ? item.getOptionName() : "");
+        } else {
+            result = result.replace("{productName}", "");
+            result = result.replace("{optionName}", "");
+        }
+
+        return result;
     }
 
     private String getStringField(Map<String, Object> map, String key, String defaultValue) {

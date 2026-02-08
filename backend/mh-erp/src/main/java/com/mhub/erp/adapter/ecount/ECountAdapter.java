@@ -184,6 +184,7 @@ public class ECountAdapter implements ErpAdapter {
                     zone, sessionId);
 
             log.debug("Calling SaveSale API at {}", apiUrl);
+            log.info("SaveSale request body: {}", saveSaleBody);
 
             Map<String, Object> response = webClient.post()
                     .uri(apiUrl)

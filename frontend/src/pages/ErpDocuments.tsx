@@ -792,7 +792,7 @@ export default function ErpDocuments() {
 
               {/* 전표 라인 */}
               <div>
-                <h4 className="mb-2 font-medium">전표 라인</h4>
+                <h4 className="font-medium mb-2">전표 라인</h4>
                 <Table>
                   <TableHeader>
                     <TableRow>

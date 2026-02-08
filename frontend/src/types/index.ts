@@ -412,6 +412,61 @@ export interface CoupangSellerProductSyncResponse {
   errorMessage: string | null;
 }
 
+// ECount 필드 매핑을 위한 값 소스 타입
+export type ECountFieldValueSource =
+  | 'FIXED'                    // 고정값 직접 입력
+  | 'ORDER_ID'                 // 주문 ID
+  | 'MARKETPLACE_ORDER_ID'     // 마켓플레이스 주문번호
+  | 'BUYER_NAME'               // 구매자명
+  | 'RECEIVER_NAME'            // 수령자명
+  | 'PRODUCT_NAME'             // 상품명
+  | 'OPTION_NAME'              // 옵션명
+  | 'UNIT_PRICE_VAT'           // VAT포함 단가 (자동계산)
+  | 'TOTAL_AMOUNT'             // 총금액
+  | 'SUPPLY_AMOUNT'            // 공급가액
+  | 'VAT_AMOUNT'               // 부가세액
+  | 'TEMPLATE';                // 템플릿 문자열 (예: "주문: {orderId}")
+
+// ECount 추가 필드명
+export type ECountExtraFieldName =
+  | 'USER_PRICE_VAT'           // 단가(VAT포함)
+  | 'REMARKS'                  // 적요
+  | 'P_REMARKS1'               // 적요1
+  | 'P_REMARKS2'               // 적요2
+  | 'P_REMARKS3'               // 적요3
+  | 'P_AMT1'                   // 금액1
+  | 'P_AMT2'                   // 금액2
+  | 'ITEM_CD'                  // 관리항목
+  | 'ADD_TXT_01' | 'ADD_TXT_02' | 'ADD_TXT_03' | 'ADD_TXT_04' | 'ADD_TXT_05' | 'ADD_TXT_06'
+  | 'ADD_NUM_01' | 'ADD_NUM_02' | 'ADD_NUM_03' | 'ADD_NUM_04' | 'ADD_NUM_05'
+  | 'ADD_CD_01' | 'ADD_CD_02' | 'ADD_CD_03'
+  | 'ADD_DATE_01' | 'ADD_DATE_02' | 'ADD_DATE_03';
+
+// ECount 필드 매핑 정의
+export interface ECountFieldMapping {
+  fieldName: ECountExtraFieldName;  // ECount 필드명
+  valueSource: ECountFieldValueSource; // 값 소스
+  fixedValue?: string;              // valueSource가 FIXED일 때 사용
+  templateValue?: string;           // valueSource가 TEMPLATE일 때 사용 (예: "주문: {orderId}")
+}
+
+// 글로벌 필드 매핑용 라인 타입
+export type GlobalFieldLineType =
+  | 'ALL'                           // 모든 라인에 적용
+  | 'PRODUCT_SALE'                  // 상품판매
+  | 'DELIVERY_FEE'                  // 배송비
+  | 'SALES_COMMISSION'              // 판매수수료
+  | 'DELIVERY_COMMISSION';          // 배송수수료
+
+// 글로벌 필드 매핑 (모든 라인에 적용)
+export interface GlobalFieldMapping {
+  fieldName: ECountExtraFieldName;  // ECount 필드명
+  valueSource: ECountFieldValueSource; // 값 소스
+  fixedValue?: string;              // valueSource가 FIXED일 때 사용
+  templateValue?: string;           // valueSource가 TEMPLATE일 때 사용
+  lineTypes: GlobalFieldLineType[]; // 적용 대상 라인 타입 (여러 개 선택 가능)
+}
+
 export interface SalesLineTemplate {
   prodCd: string;
   prodDes: string;
@@ -424,6 +479,20 @@ export interface SalesLineTemplate {
   extraFields: Record<string, string>;
   // 마켓별 품목코드 (판매수수료, 배송수수료용)
   marketplaceProdCds?: Record<string, { prodCd: string; prodDes: string }>;
+  // fieldMappings는 글로벌로 이동됨 (globalFieldMappings 사용)
+}
+
+// 전표 템플릿 추가 항목
+export interface AdditionalLineTemplate {
+  prodCd: string;
+  prodDes: string;
+  whCd?: string;
+  qty: number;
+  unitPrice: number;
+  vatCalculation: string;
+  negateAmount: boolean;
+  remarks?: string;
+  enabled: boolean;
 }
 
 export interface ErpSalesTemplateRequest {
@@ -433,6 +502,8 @@ export interface ErpSalesTemplateRequest {
   lineDeliveryFee: SalesLineTemplate;
   lineSalesCommission: SalesLineTemplate;
   lineDeliveryCommission: SalesLineTemplate;
+  additionalLines?: AdditionalLineTemplate[];
+  globalFieldMappings?: GlobalFieldMapping[];
   active: boolean;
 }
 
@@ -445,6 +516,8 @@ export interface ErpSalesTemplateResponse {
   lineDeliveryFee: SalesLineTemplate;
   lineSalesCommission: SalesLineTemplate;
   lineDeliveryCommission: SalesLineTemplate;
+  additionalLines?: AdditionalLineTemplate[];
+  globalFieldMappings?: GlobalFieldMapping[];
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -517,6 +590,7 @@ export interface SalesDocumentLine {
   CUST?: string;
   CUST_DES?: string;
   REMARKS?: string;
+  WH_CD?: string;
   [key: string]: string | undefined;
 }
 
