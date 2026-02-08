@@ -407,20 +407,44 @@ public class ECountSalesDocumentBuilder {
     }
 
     private BigDecimal calculateCommissionAmount(Order order, List<OrderSettlement> settlements) {
-        // 정산 데이터 우선 사용
+        // 1. 정산 데이터 우선 사용
         if (settlements != null && !settlements.isEmpty()) {
-            return settlements.stream()
+            BigDecimal total = settlements.stream()
                     .map(OrderSettlement::getCommissionAmount)
                     .filter(Objects::nonNull)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (total.compareTo(BigDecimal.ZERO) > 0) {
+                return total;
+            }
         }
-        // fallback: OrderItem.commissionRate로 계산
-        return order.getItems().stream()
+
+        // 2. OrderItem.commissionRate로 계산
+        BigDecimal fromItems = order.getItems().stream()
                 .filter(i -> i.getCommissionRate() != null)
                 .map(i -> i.getTotalPrice()
                         .multiply(i.getCommissionRate())
                         .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (fromItems.compareTo(BigDecimal.ZERO) > 0) {
+            return fromItems;
+        }
+
+        // 3. 정산예정금액으로 수수료 역산 (네이버 등 API에서 제공하는 경우)
+        // 수수료 = (상품금액 + 배송비) - 정산예정금액 - 배송비수수료
+        BigDecimal expectedSettlement = order.getExpectedSettlementAmount();
+        if (expectedSettlement != null && expectedSettlement.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal totalAmount = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+            BigDecimal deliveryCommission = order.getEstimatedDeliveryCommission() != null
+                    ? order.getEstimatedDeliveryCommission() : BigDecimal.ZERO;
+
+            // 판매수수료 = 총금액 - 정산예정금액 - 배송비수수료
+            BigDecimal commission = totalAmount.subtract(expectedSettlement).subtract(deliveryCommission);
+            if (commission.compareTo(BigDecimal.ZERO) > 0) {
+                return commission;
+            }
+        }
+
+        return BigDecimal.ZERO;
     }
 
     private BigDecimal calculateDeliveryCommission(Order order, List<OrderSettlement> settlements) {

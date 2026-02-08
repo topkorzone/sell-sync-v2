@@ -67,11 +67,23 @@ public class ErpSalesDocumentService implements ErpDocumentGenerator {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> saleList = (List<Map<String, Object>>) requestBody.get("SaleList");
 
+        // BulkDatas 내용만 추출하여 documentLines에 저장 (UI 표시용)
+        List<Map<String, Object>> documentLines = new ArrayList<>();
+        if (saleList != null) {
+            for (Map<String, Object> wrapper : saleList) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> bulkDatas = (Map<String, Object>) wrapper.get("BulkDatas");
+                if (bulkDatas != null) {
+                    documentLines.add(bulkDatas);
+                }
+            }
+        }
+
         // 거래처 정보 추출
         String customerCode = null;
         String customerName = null;
-        if (saleList != null && !saleList.isEmpty()) {
-            Map<String, Object> firstLine = saleList.get(0);
+        if (!documentLines.isEmpty()) {
+            Map<String, Object> firstLine = documentLines.get(0);
             customerCode = (String) firstLine.get("CUST");
             customerName = (String) firstLine.get("CUST_DES");
         }
@@ -86,7 +98,7 @@ public class ErpSalesDocumentService implements ErpDocumentGenerator {
                 .customerCode(customerCode)
                 .customerName(customerName)
                 .totalAmount(order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO)
-                .documentLines(saleList != null ? saleList : List.of())
+                .documentLines(documentLines)
                 .build();
 
         document = documentRepository.save(document);
@@ -184,7 +196,9 @@ public class ErpSalesDocumentService implements ErpDocumentGenerator {
 
         try {
             ECountAdapter adapter = (ECountAdapter) erpAdapterFactory.getAdapter(config.getErpType());
-            Map<String, Object> requestBody = Map.of("SaleList", doc.getDocumentLines());
+            // documentLines를 BulkDatas로 감싸서 ECount API 형식에 맞게 변환
+            List<Map<String, Object>> saleList = wrapWithBulkDatas(doc.getDocumentLines());
+            Map<String, Object> requestBody = Map.of("SaleList", saleList);
             ErpAdapter.DocumentResult result = adapter.createSaveSale(config, requestBody);
 
             if (result.success()) {
@@ -239,7 +253,8 @@ public class ErpSalesDocumentService implements ErpDocumentGenerator {
 
         for (ErpSalesDocument doc : pendingDocs) {
             try {
-                Map<String, Object> requestBody = Map.of("SaleList", doc.getDocumentLines());
+                List<Map<String, Object>> saleList = wrapWithBulkDatas(doc.getDocumentLines());
+                Map<String, Object> requestBody = Map.of("SaleList", saleList);
                 ErpAdapter.DocumentResult result = adapter.createSaveSale(config, requestBody);
 
                 if (result.success()) {
@@ -302,7 +317,8 @@ public class ErpSalesDocumentService implements ErpDocumentGenerator {
 
         for (ErpSalesDocument doc : docs) {
             try {
-                Map<String, Object> requestBody = Map.of("SaleList", doc.getDocumentLines());
+                List<Map<String, Object>> saleList = wrapWithBulkDatas(doc.getDocumentLines());
+                Map<String, Object> requestBody = Map.of("SaleList", saleList);
                 ErpAdapter.DocumentResult result = adapter.createSaveSale(config, requestBody);
 
                 if (result.success()) {
@@ -494,5 +510,21 @@ public class ErpSalesDocumentService implements ErpDocumentGenerator {
                 .filter(ErpSalesTemplate::getActive)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.ERP_TEMPLATE_NOT_FOUND,
                         "전표 템플릿이 설정되지 않았습니다. 설정 > ERP에서 전표 템플릿을 먼저 설정해주세요."));
+    }
+
+    /**
+     * documentLines를 ECount API 형식 (BulkDatas 래퍼)으로 변환
+     */
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> wrapWithBulkDatas(List<Map<String, Object>> documentLines) {
+        List<Map<String, Object>> saleList = new ArrayList<>();
+        if (documentLines != null) {
+            for (Map<String, Object> line : documentLines) {
+                Map<String, Object> wrapper = new LinkedHashMap<>();
+                wrapper.put("BulkDatas", line);
+                saleList.add(wrapper);
+            }
+        }
+        return saleList;
     }
 }

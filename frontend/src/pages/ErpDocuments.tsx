@@ -127,6 +127,19 @@ function formatCurrency(amount?: number | null): string {
   return amount.toLocaleString();
 }
 
+// documentLines 정규화 (기존 BulkDatas 래퍼 형식과 새 형식 모두 처리)
+function normalizeDocumentLines(lines: unknown[]): SalesDocumentLine[] {
+  if (!lines || !Array.isArray(lines)) return [];
+  return lines.map((item) => {
+    // BulkDatas 래퍼가 있는 경우 (기존 형식)
+    if (item && typeof item === "object" && "BulkDatas" in item) {
+      return (item as { BulkDatas: SalesDocumentLine }).BulkDatas;
+    }
+    // 직접 데이터인 경우 (새 형식)
+    return item as SalesDocumentLine;
+  });
+}
+
 export default function ErpDocuments() {
   const [activeTab, setActiveTab] = useState<"pending-orders" | "documents">("pending-orders");
 
@@ -401,7 +414,7 @@ export default function ErpDocuments() {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">배송중/배송완료 주문 (전표 미생성)</CardTitle>
+                <CardTitle className="text-base">배송중/배송완료 주문 (상품매핑 완료, 전표 미생성)</CardTitle>
                 {selectedOrderIds.size > 0 && (
                   <Button onClick={handleGenerateDocuments} disabled={generating}>
                     {generating ? (
@@ -793,7 +806,7 @@ export default function ErpDocuments() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(detailDocument.documentLines as SalesDocumentLine[]).map((line, idx) => (
+                    {normalizeDocumentLines(detailDocument.documentLines as unknown[]).map((line, idx) => (
                       <TableRow key={idx}>
                         <TableCell className="text-sm">{line.LINE_NO}</TableCell>
                         <TableCell className="font-mono text-xs">{line.PROD_CD || "-"}</TableCell>
