@@ -324,7 +324,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "26mm",
+            top: "23mm",
             left: "9mm",
             fontSize: "10pt",
             fontWeight: "bold",
@@ -340,11 +340,11 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "31mm",
+            top: "26mm",
             left: "9mm",
             right: "38mm",
             fontSize: "9pt",
-            lineHeight: 1.3,
+            lineHeight: 1.0,
             overflow: "hidden",
             display: "-webkit-box",
             WebkitLineClamp: 2,
@@ -358,7 +358,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "40mm",
+            top: "32mm",
             left: "9mm",
             right: "10mm",
             fontSize: "24pt",
@@ -377,7 +377,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "51mm",
+            top: "43mm",
             left: "9mm",
             fontSize: "7pt",
             fontWeight: "bold",
@@ -441,7 +441,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "57mm",
+            top: "48mm",
             left: "9mm",
             right: "10mm",
             fontSize: "8pt",
@@ -546,8 +546,8 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            bottom: "2mm",
-            right: "8mm",
+            bottom: "0mm",
+            right: "6mm",
             width: "35mm",
             display: "flex",
             flexDirection: "column",
