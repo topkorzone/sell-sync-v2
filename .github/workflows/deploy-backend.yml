@@ -53,40 +53,25 @@ jobs:
           # Upload JAR
           scp -i ~/.ssh/deploy_key ${{ steps.find-jar.outputs.jar_path }} $SSH_USER@$SERVER_IP:/opt/sellsync/app.jar.new
 
-          # Execute deployment
-          ssh -i ~/.ssh/deploy_key $SSH_USER@$SERVER_IP << 'ENDSSH'
-            set -e
-            cd /opt/sellsync
+          # Deploy: backup, replace, restart
+          ssh -i ~/.ssh/deploy_key $SSH_USER@$SERVER_IP 'cd /opt/sellsync && cp -f app.jar app.jar.backup 2>/dev/null || true && mv app.jar.new app.jar && sudo systemctl restart sellsync'
 
-            # Backup current jar
-            if [ -f app.jar ]; then
-              cp app.jar app.jar.backup
+          # Wait for Spring Boot startup
+          echo "Waiting 40s for Spring Boot to start..."
+          sleep 40
+
+          # Health check from GitHub Actions runner
+          for i in 1 2 3 4 5 6; do
+            if curl -sf --connect-timeout 10 http://$SERVER_IP/actuator/health > /dev/null 2>&1; then
+              echo "Health check passed!"
+              exit 0
             fi
+            echo "Retry health check ($i/6)..."
+            sleep 10
+          done
 
-            # Replace with new jar
-            mv app.jar.new app.jar
-
-            # Restart application
-            sudo systemctl restart sellsync
-
-            # Wait for application to start (Spring Boot takes ~30s)
-            echo "Waiting for application to start..."
-            sleep 30
-
-            # Health check with retries
-            for i in {1..10}; do
-              if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
-                echo "Health check passed!"
-                exit 0
-              fi
-              echo "Waiting for application... ($i/10)"
-              sleep 10
-            done
-
-            echo "Health check failed!"
-            sudo journalctl -u sellsync -n 50 --no-pager
-            exit 1
-          ENDSSH
+          echo "Health check failed"
+          exit 1
 
       - name: Deployment Success
         if: success()
