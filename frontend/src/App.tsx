@@ -33,6 +33,7 @@ function ProtectedLayout() {
       } catch {
         navigate("/login", { replace: true });
       } finally {
+        console.log("finally");
         setLoading(false);
       }
     };
