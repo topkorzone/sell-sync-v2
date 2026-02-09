@@ -34,6 +34,12 @@ mhub:
     service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
   cors:
     allowed-origins: ${FRONTEND_URL:https://sell-sync.biz}
+  aws:
+    region: ${AWS_REGION:ap-northeast-2}
+    access-key: ${AWS_ACCESS_KEY}
+    secret-key: ${AWS_SECRET_KEY}
+    sqs:
+      order-sync-queue: ${AWS_SQS_ORDER_SYNC_QUEUE_URL}
 
 cj:
   api:
