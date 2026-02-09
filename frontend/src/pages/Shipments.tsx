@@ -222,7 +222,7 @@ export default function Shipments() {
       const params: Record<string, string | number | string[]> = {
         page,
         size: 20,
-        statuses: ["COLLECTED", "CONFIRMED", "READY_TO_SHIP"],
+        statuses: ["CONFIRMED", "READY_TO_SHIP"],
       };
       if (marketplaceFilter) params.marketplace = marketplaceFilter;
       const { data } = await api.get<{ data: PageResponse<Order> }>("/api/v1/orders", {

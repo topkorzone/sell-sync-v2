@@ -1,0 +1,27 @@
+[Unit]
+Description=SellSync Backend API
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/sellsync
+ExecStart=/usr/bin/java -jar -Xms512m -Xmx1536m -Dspring.profiles.active=prod /opt/sellsync/app.jar
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+RestartSec=10
+
+# Environment variables
+EnvironmentFile=/opt/sellsync/.env
+
+# Logging
+StandardOutput=append:/var/log/sellsync/stdout.log
+StandardError=append:/var/log/sellsync/stderr.log
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

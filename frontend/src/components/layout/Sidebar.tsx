@@ -3,9 +3,9 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Link2,
-  Package,
+  // Package, // 쿠팡 상품 메뉴 숨김
   Truck,
-  DollarSign,
+  // DollarSign, // 정산 관리 메뉴 숨김
   FileText,
   Settings,
 } from "lucide-react";
@@ -15,9 +15,9 @@ const menuItems = [
   { path: "/", icon: LayoutDashboard, label: "대시보드" },
   { path: "/orders", icon: ShoppingCart, label: "주문 관리" },
   { path: "/product-mappings", icon: Link2, label: "상품 매핑" },
-  { path: "/coupang-products", icon: Package, label: "쿠팡 상품" },
+  // { path: "/coupang-products", icon: Package, label: "쿠팡 상품" }, // 숨김 처리
   { path: "/shipments", icon: Truck, label: "배송 관리" },
-  { path: "/settlements", icon: DollarSign, label: "정산 관리" },
+  // { path: "/settlements", icon: DollarSign, label: "정산 관리" }, // 숨김 처리
   { path: "/erp-documents", icon: FileText, label: "전표 관리" },
   { path: "/settings", icon: Settings, label: "설정" },
 ];

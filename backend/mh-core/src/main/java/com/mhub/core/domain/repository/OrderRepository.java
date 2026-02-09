@@ -124,4 +124,67 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     long countOrdersWithoutErpDocument(
             @Param("tenantId") UUID tenantId,
             @Param("statuses") List<OrderStatus> statuses);
+
+    // ===================== Dashboard 통계 쿼리 =====================
+
+    /**
+     * 오늘 주문 수 (주문일 기준)
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId AND o.orderedAt >= :startOfDay")
+    long countTodayOrders(@Param("tenantId") UUID tenantId, @Param("startOfDay") LocalDateTime startOfDay);
+
+    /**
+     * 오늘 발송 수 (배송중/배송완료 상태로 변경된 주문 - updatedAt 기준)
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.status IN :shippingStatuses AND o.updatedAt >= :startOfDay")
+    long countTodayShipments(
+            @Param("tenantId") UUID tenantId,
+            @Param("shippingStatuses") List<OrderStatus> shippingStatuses,
+            @Param("startOfDay") LocalDateTime startOfDay);
+
+    /**
+     * 미처리 주문 수 (수집완료, 확인, 발송준비 상태)
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId AND o.status IN :pendingStatuses")
+    long countPendingOrders(
+            @Param("tenantId") UUID tenantId,
+            @Param("pendingStatuses") List<OrderStatus> pendingStatuses);
+
+    /**
+     * 이번 달 매출 합계
+     */
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o " +
+           "WHERE o.tenantId = :tenantId AND o.orderedAt >= :startOfMonth " +
+           "AND o.status NOT IN :excludeStatuses")
+    long sumMonthlyRevenue(
+            @Param("tenantId") UUID tenantId,
+            @Param("startOfMonth") LocalDateTime startOfMonth,
+            @Param("excludeStatuses") List<OrderStatus> excludeStatuses);
+
+    /**
+     * 최근 주문 조회
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId ORDER BY o.orderedAt DESC")
+    List<Order> findRecentOrders(@Param("tenantId") UUID tenantId, Pageable pageable);
+
+    /**
+     * 마켓별 주문 수 (이번 달)
+     */
+    @Query("SELECT o.marketplaceType, COUNT(o) FROM Order o " +
+           "WHERE o.tenantId = :tenantId AND o.orderedAt >= :startOfMonth " +
+           "GROUP BY o.marketplaceType")
+    List<Object[]> countOrdersByMarketplace(
+            @Param("tenantId") UUID tenantId,
+            @Param("startOfMonth") LocalDateTime startOfMonth);
+
+    /**
+     * 상태별 주문 수
+     */
+    @Query("SELECT o.status, COUNT(o) FROM Order o " +
+           "WHERE o.tenantId = :tenantId AND o.orderedAt >= :since " +
+           "GROUP BY o.status")
+    List<Object[]> countOrdersByStatus(
+            @Param("tenantId") UUID tenantId,
+            @Param("since") LocalDateTime since);
 }

@@ -1,0 +1,54 @@
+spring:
+  autoconfigure:
+    exclude:
+      - io.awspring.cloud.autoconfigure.sqs.SqsAutoConfiguration
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 3
+
+  flyway:
+    enabled: true
+    url: ${SPRING_DATASOURCE_URL}
+    user: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+    show-sql: false
+
+mhub:
+  encryption:
+    key: ${ENCRYPTION_KEY}
+  supabase:
+    url: ${SUPABASE_URL:https://nnwcuhamxjqgmyzptbyb.supabase.co}
+    jwt-secret: ${JWT_SECRET}
+    service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  cors:
+    allowed-origins: ${FRONTEND_URL:https://sell-sync.biz}
+
+cj:
+  api:
+    base-url: ${CJ_API_BASE_URL:https://dxapi.cjlogistics.com:5004}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.mhub: INFO
+    org.hibernate.SQL: WARN
+  file:
+    name: /var/log/sellsync/application.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30

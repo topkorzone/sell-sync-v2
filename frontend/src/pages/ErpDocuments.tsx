@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
   RefreshCw,
+  RefreshCcw,
   Send,
   Trash2,
   Eye,
@@ -11,6 +12,7 @@ import {
   XCircle,
   FileText,
   FilePlus,
+  Ban,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -161,12 +163,14 @@ export default function ErpDocuments() {
   const [sending, setSending] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   // 공통 상태
   const [counts, setCounts] = useState<ErpDocumentCounts & { NEED_DOCUMENT?: number }>({
     PENDING: 0,
     SENT: 0,
     FAILED: 0,
+    CANCELLED: 0,
   });
   const [detailDocument, setDetailDocument] = useState<ErpSalesDocument | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -271,6 +275,12 @@ export default function ErpDocuments() {
       );
       if (data.data?.status === "SENT") {
         toast.success("전표가 전송되었습니다.");
+        // 전송 완료된 전표는 선택에서 제거
+        setSelectedDocIds((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(documentId);
+          return newSet;
+        });
       } else {
         toast.error(data.data?.errorMessage || "전표 전송에 실패했습니다.");
       }
@@ -322,6 +332,24 @@ export default function ErpDocuments() {
     } finally {
       setDeletingId(null);
       setDeleteConfirmId(null);
+    }
+  };
+
+  // 전표 재생성 (취소된 전표)
+  const handleRegenerate = async (orderId: string) => {
+    setRegeneratingId(orderId);
+    try {
+      await api.post<ApiResponse<ErpSalesDocument>>(
+        `/api/v1/erp/documents/regenerate/${orderId}`
+      );
+      toast.success("전표가 재생성되었습니다.");
+      fetchDocuments();
+      fetchPendingOrders();
+      fetchCounts();
+    } catch {
+      toast.error("전표 재생성에 실패했습니다.");
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -534,6 +562,7 @@ export default function ErpDocuments() {
                     onClick={() => {
                       setDocumentStatusFilter("ALL");
                       setDocumentsPage(0);
+                      setSelectedDocIds(new Set());
                     }}
                   >
                     전체
@@ -544,6 +573,7 @@ export default function ErpDocuments() {
                     onClick={() => {
                       setDocumentStatusFilter("PENDING");
                       setDocumentsPage(0);
+                      setSelectedDocIds(new Set());
                     }}
                   >
                     <Clock className="mr-1 h-3 w-3" />
@@ -555,6 +585,7 @@ export default function ErpDocuments() {
                     onClick={() => {
                       setDocumentStatusFilter("SENT");
                       setDocumentsPage(0);
+                      setSelectedDocIds(new Set());
                     }}
                   >
                     <CheckCircle2 className="mr-1 h-3 w-3" />
@@ -566,10 +597,23 @@ export default function ErpDocuments() {
                     onClick={() => {
                       setDocumentStatusFilter("FAILED");
                       setDocumentsPage(0);
+                      setSelectedDocIds(new Set());
                     }}
                   >
                     <XCircle className="mr-1 h-3 w-3" />
                     실패 ({counts.FAILED})
+                  </Button>
+                  <Button
+                    variant={documentStatusFilter === "CANCELLED" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setDocumentStatusFilter("CANCELLED");
+                      setDocumentsPage(0);
+                      setSelectedDocIds(new Set());
+                    }}
+                  >
+                    <Ban className="mr-1 h-3 w-3" />
+                    취소 ({counts.CANCELLED ?? 0})
                   </Button>
                 </div>
                 {selectedDocIds.size > 0 && (
@@ -621,6 +665,7 @@ export default function ErpDocuments() {
                         const config = statusConfig[doc.status];
                         const canSend = doc.status === "PENDING" || doc.status === "FAILED";
                         const canDelete = doc.status === "PENDING" || doc.status === "FAILED";
+                        const canRegenerate = doc.status === "CANCELLED";
 
                         return (
                           <TableRow key={doc.id}>
@@ -692,6 +737,22 @@ export default function ErpDocuments() {
                                       <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
                                       <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                )}
+                                {canRegenerate && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-green-600 hover:text-green-700"
+                                    onClick={() => handleRegenerate(doc.orderId)}
+                                    disabled={regeneratingId === doc.orderId}
+                                    title="재생성"
+                                  >
+                                    {regeneratingId === doc.orderId ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <RefreshCcw className="h-4 w-4" />
                                     )}
                                   </Button>
                                 )}

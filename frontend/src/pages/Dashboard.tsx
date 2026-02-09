@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ShoppingCart,
-  Truck,
   Clock,
   DollarSign,
   Loader2,
@@ -19,8 +18,8 @@ import api from "@/lib/api";
 import type { DashboardOverview } from "@/types";
 
 const statCards = [
+  { key: "totalOrders" as const, title: "전체 주문", icon: ShoppingCart, suffix: "건" },
   { key: "todayOrders" as const, title: "오늘 주문", icon: ShoppingCart, suffix: "건" },
-  { key: "todayShipments" as const, title: "오늘 발송", icon: Truck, suffix: "건" },
   { key: "pendingOrders" as const, title: "미처리 주문", icon: Clock, suffix: "건" },
   { key: "monthlyRevenue" as const, title: "이번 달 매출", icon: DollarSign, suffix: "원", format: true },
 ];
@@ -28,14 +27,29 @@ const statCards = [
 export default function Dashboard() {
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const { data } = await api.get("/api/v1/dashboard/overview");
-        setOverview(data.data);
-      } catch {
-        // Dashboard data unavailable
+        const response = await api.get("/api/v1/dashboard/overview");
+        console.log("Dashboard API full response:", response);
+        console.log("Dashboard API data:", response.data);
+        console.log("Dashboard API data.data:", response.data?.data);
+
+        if (!response.data?.success) {
+          setError(response.data?.message || "API 응답 실패");
+          return;
+        }
+
+        const dashboardData = response.data.data;
+        console.log("Setting overview:", dashboardData);
+        setOverview(dashboardData);
+        setError(null);
+      } catch (err: unknown) {
+        console.error("Dashboard API error:", err);
+        const errorMessage = err instanceof Error ? err.message : "알 수 없는 오류";
+        setError(`대시보드 데이터를 불러오는데 실패했습니다: ${errorMessage}`);
       } finally {
         setLoading(false);
       }
@@ -47,6 +61,20 @@ export default function Dashboard() {
     return (
       <div className="flex justify-center pt-24">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center pt-24 text-muted-foreground">
+        <p className="text-red-500">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 text-sm underline"
+        >
+          다시 시도
+        </button>
       </div>
     );
   }
