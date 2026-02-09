@@ -2,6 +2,7 @@ spring:
   autoconfigure:
     exclude:
       - io.awspring.cloud.autoconfigure.sqs.SqsAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
 
   datasource:
     url: ${SPRING_DATASOURCE_URL}
