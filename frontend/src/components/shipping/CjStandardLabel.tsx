@@ -325,7 +325,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
           style={{
             position: "absolute",
             top: "23mm",
-            left: "9mm",
+            left: "11mm",
             fontSize: "10pt",
             fontWeight: "bold",
           }}
@@ -340,7 +340,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "26mm",
+            top: "28mm",
             left: "9mm",
             right: "38mm",
             fontSize: "9pt",
@@ -390,7 +390,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "51mm",
+            top: "43mm",
             left: "28mm",
             fontSize: "7pt",
           }}
@@ -441,7 +441,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "48mm",
+            top: "47mm",
             left: "9mm",
             right: "10mm",
             fontSize: "8pt",
