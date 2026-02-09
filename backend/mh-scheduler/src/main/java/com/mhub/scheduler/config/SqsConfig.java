@@ -1,5 +1,6 @@
 package com.mhub.scheduler.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ public class SqsConfig {
     @Value("${mhub.aws.secret-key:test}") private String secretKey;
 
     @Bean
+    @ConditionalOnMissingBean
     public SqsAsyncClient sqsAsyncClient() {
         var builder = SqsAsyncClient.builder().region(Region.of(awsRegion)).credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)));
         if (sqsEndpoint != null && !sqsEndpoint.isBlank()) builder.endpointOverride(URI.create(sqsEndpoint));
