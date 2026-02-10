@@ -50,22 +50,44 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public Page<OrderResponse> getOrders(OrderStatus status, MarketplaceType marketplaceType, Pageable pageable) {
-        return getOrders(status != null ? List.of(status) : null, marketplaceType, pageable);
+        return getOrders(status != null ? List.of(status) : null, marketplaceType, null, pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<OrderResponse> getOrders(List<OrderStatus> statuses, MarketplaceType marketplaceType, Pageable pageable) {
+        return getOrders(statuses, marketplaceType, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getOrders(List<OrderStatus> statuses, MarketplaceType marketplaceType, String search, Pageable pageable) {
         UUID tenantId = TenantContext.requireTenantId();
         Page<Order> orders;
         boolean hasStatuses = statuses != null && !statuses.isEmpty();
-        if (hasStatuses && marketplaceType != null) {
-            orders = orderRepository.findByTenantIdAndStatusInAndMarketplaceType(tenantId, statuses, marketplaceType, pageable);
-        } else if (hasStatuses) {
-            orders = orderRepository.findByTenantIdAndStatusIn(tenantId, statuses, pageable);
-        } else if (marketplaceType != null) {
-            orders = orderRepository.findByTenantIdAndMarketplaceType(tenantId, marketplaceType, pageable);
+        boolean hasSearch = search != null && !search.trim().isEmpty();
+        String searchTerm = hasSearch ? search.trim() : null;
+
+        if (hasSearch) {
+            // 검색어가 있는 경우
+            if (hasStatuses && marketplaceType != null) {
+                orders = orderRepository.searchByKeywordAndStatusesAndMarketplace(tenantId, searchTerm, statuses, marketplaceType, pageable);
+            } else if (hasStatuses) {
+                orders = orderRepository.searchByKeywordAndStatuses(tenantId, searchTerm, statuses, pageable);
+            } else if (marketplaceType != null) {
+                orders = orderRepository.searchByKeywordAndMarketplace(tenantId, searchTerm, marketplaceType, pageable);
+            } else {
+                orders = orderRepository.searchByKeyword(tenantId, searchTerm, pageable);
+            }
         } else {
-            orders = orderRepository.findByTenantId(tenantId, pageable);
+            // 검색어가 없는 경우 (기존 로직)
+            if (hasStatuses && marketplaceType != null) {
+                orders = orderRepository.findByTenantIdAndStatusInAndMarketplaceType(tenantId, statuses, marketplaceType, pageable);
+            } else if (hasStatuses) {
+                orders = orderRepository.findByTenantIdAndStatusIn(tenantId, statuses, pageable);
+            } else if (marketplaceType != null) {
+                orders = orderRepository.findByTenantIdAndMarketplaceType(tenantId, marketplaceType, pageable);
+            } else {
+                orders = orderRepository.findByTenantId(tenantId, pageable);
+            }
         }
 
         // 각 마켓플레이스별 매핑 정보를 조회하여 캐시

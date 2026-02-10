@@ -48,6 +48,7 @@ public class OrderController {
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) List<OrderStatus> statuses,
             @RequestParam(required = false) MarketplaceType marketplace,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         List<OrderStatus> statusList = null;
@@ -56,7 +57,7 @@ public class OrderController {
         } else if (status != null) {
             statusList = List.of(status);
         }
-        Page<OrderResponse> orders = orderService.getOrders(statusList, marketplace,
+        Page<OrderResponse> orders = orderService.getOrders(statusList, marketplace, search,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderedAt")));
         return ApiResponse.ok(PageResponse.of(orders.getContent(), orders.getNumber(),
                 orders.getSize(), orders.getTotalElements()));

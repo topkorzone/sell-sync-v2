@@ -307,7 +307,7 @@ export default function Orders() {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-tight">주문 관리</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 hidden">
           <Button variant="outline" onClick={handleErpSyncAll} disabled={syncingErp}>
             {syncingErp ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -333,6 +333,7 @@ export default function Orders() {
               value={marketplaceFilter}
               onValueChange={(v) => {
                 setMarketplaceFilter(v === "all" ? "" : v);
+                setSearch("");
                 setPage(0);
               }}
             >
@@ -358,6 +359,7 @@ export default function Orders() {
               value={statusFilter}
               onValueChange={(v) => {
                 setStatusFilter(v === "all" ? "" : v);
+                setSearch("");
                 setPage(0);
               }}
             >

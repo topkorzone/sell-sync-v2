@@ -23,6 +23,56 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Page<Order> findByTenantIdAndMarketplaceType(UUID tenantId, MarketplaceType marketplaceType, Pageable pageable);
     Page<Order> findByTenantIdAndStatusAndMarketplaceType(UUID tenantId, OrderStatus status, MarketplaceType marketplaceType, Pageable pageable);
     Page<Order> findByTenantIdAndStatusInAndMarketplaceType(UUID tenantId, List<OrderStatus> statuses, MarketplaceType marketplaceType, Pageable pageable);
+
+    // ===================== 검색 쿼리 =====================
+
+    /**
+     * 검색 (주문번호 또는 수취인명)
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND (o.marketplaceOrderId LIKE CONCAT('%', :search, '%') OR o.receiverName LIKE CONCAT('%', :search, '%'))")
+    Page<Order> searchByKeyword(
+            @Param("tenantId") UUID tenantId,
+            @Param("search") String search,
+            Pageable pageable);
+
+    /**
+     * 검색 + 마켓플레이스 필터
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.marketplaceType = :marketplaceType " +
+           "AND (o.marketplaceOrderId LIKE CONCAT('%', :search, '%') OR o.receiverName LIKE CONCAT('%', :search, '%'))")
+    Page<Order> searchByKeywordAndMarketplace(
+            @Param("tenantId") UUID tenantId,
+            @Param("search") String search,
+            @Param("marketplaceType") MarketplaceType marketplaceType,
+            Pageable pageable);
+
+    /**
+     * 검색 + 상태 필터
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.status IN :statuses " +
+           "AND (o.marketplaceOrderId LIKE CONCAT('%', :search, '%') OR o.receiverName LIKE CONCAT('%', :search, '%'))")
+    Page<Order> searchByKeywordAndStatuses(
+            @Param("tenantId") UUID tenantId,
+            @Param("search") String search,
+            @Param("statuses") List<OrderStatus> statuses,
+            Pageable pageable);
+
+    /**
+     * 검색 + 상태 + 마켓플레이스 필터
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.status IN :statuses " +
+           "AND o.marketplaceType = :marketplaceType " +
+           "AND (o.marketplaceOrderId LIKE CONCAT('%', :search, '%') OR o.receiverName LIKE CONCAT('%', :search, '%'))")
+    Page<Order> searchByKeywordAndStatusesAndMarketplace(
+            @Param("tenantId") UUID tenantId,
+            @Param("search") String search,
+            @Param("statuses") List<OrderStatus> statuses,
+            @Param("marketplaceType") MarketplaceType marketplaceType,
+            Pageable pageable);
     Optional<Order> findByTenantIdAndMarketplaceTypeAndMarketplaceOrderIdAndMarketplaceProductOrderId(UUID tenantId, MarketplaceType marketplaceType, String marketplaceOrderId, String marketplaceProductOrderId);
     @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId AND o.erpSynced = false")
     long countUnsynced(@Param("tenantId") UUID tenantId);
