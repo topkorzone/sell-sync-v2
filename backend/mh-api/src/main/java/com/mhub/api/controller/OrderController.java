@@ -42,13 +42,16 @@ public class OrderController {
     private final TenantMarketplaceCredentialRepository credentialRepository;
     private final OrderCommissionService orderCommissionService;
 
-    @Operation(summary = "List orders")
+    @Operation(summary = "List orders",
+            description = "주문 목록을 조회합니다. startDate/endDate로 결제일 기준 날짜 범위 필터링이 가능합니다.")
     @GetMapping
     public ApiResponse<PageResponse<OrderResponse>> listOrders(
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) List<OrderStatus> statuses,
             @RequestParam(required = false) MarketplaceType marketplace,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         List<OrderStatus> statusList = null;
@@ -57,7 +60,13 @@ public class OrderController {
         } else if (status != null) {
             statusList = List.of(status);
         }
+
+        // 날짜 범위 변환 (LocalDate -> LocalDateTime)
+        LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
+        LocalDateTime endDateTime = endDate != null ? endDate.atTime(LocalTime.MAX) : null;
+
         Page<OrderResponse> orders = orderService.getOrders(statusList, marketplace, search,
+                startDateTime, endDateTime,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderedAt")));
         return ApiResponse.ok(PageResponse.of(orders.getContent(), orders.getNumber(),
                 orders.getSize(), orders.getTotalElements()));

@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,30 +61,65 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public Page<OrderResponse> getOrders(List<OrderStatus> statuses, MarketplaceType marketplaceType, String search, Pageable pageable) {
+        return getOrders(statuses, marketplaceType, search, null, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getOrders(List<OrderStatus> statuses, MarketplaceType marketplaceType, String search,
+                                         LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         UUID tenantId = TenantContext.requireTenantId();
         Page<Order> orders;
         boolean hasStatuses = statuses != null && !statuses.isEmpty();
         boolean hasSearch = search != null && !search.trim().isEmpty();
+        boolean hasDateRange = startDate != null && endDate != null;
+        boolean hasMarketplace = marketplaceType != null;
         String searchTerm = hasSearch ? search.trim() : null;
 
-        if (hasSearch) {
-            // 검색어가 있는 경우
-            if (hasStatuses && marketplaceType != null) {
+        if (hasDateRange) {
+            // 날짜 범위가 있는 경우 - 조합별 쿼리 사용
+            if (hasSearch && hasStatuses && hasMarketplace) {
+                orders = orderRepository.findByDateRangeAndKeywordAndStatusesAndMarketplace(
+                        tenantId, startDate, endDate, searchTerm, statuses, marketplaceType, pageable);
+            } else if (hasSearch && hasStatuses) {
+                orders = orderRepository.findByDateRangeAndKeywordAndStatuses(
+                        tenantId, startDate, endDate, searchTerm, statuses, pageable);
+            } else if (hasSearch && hasMarketplace) {
+                orders = orderRepository.findByDateRangeAndKeywordAndMarketplace(
+                        tenantId, startDate, endDate, searchTerm, marketplaceType, pageable);
+            } else if (hasSearch) {
+                orders = orderRepository.findByDateRangeAndKeyword(
+                        tenantId, startDate, endDate, searchTerm, pageable);
+            } else if (hasStatuses && hasMarketplace) {
+                orders = orderRepository.findByDateRangeAndStatusesAndMarketplace(
+                        tenantId, startDate, endDate, statuses, marketplaceType, pageable);
+            } else if (hasStatuses) {
+                orders = orderRepository.findByDateRangeAndStatuses(
+                        tenantId, startDate, endDate, statuses, pageable);
+            } else if (hasMarketplace) {
+                orders = orderRepository.findByDateRangeAndMarketplace(
+                        tenantId, startDate, endDate, marketplaceType, pageable);
+            } else {
+                orders = orderRepository.findByDateRange(
+                        tenantId, startDate, endDate, pageable);
+            }
+        } else if (hasSearch) {
+            // 검색어가 있는 경우 (날짜 범위 없음)
+            if (hasStatuses && hasMarketplace) {
                 orders = orderRepository.searchByKeywordAndStatusesAndMarketplace(tenantId, searchTerm, statuses, marketplaceType, pageable);
             } else if (hasStatuses) {
                 orders = orderRepository.searchByKeywordAndStatuses(tenantId, searchTerm, statuses, pageable);
-            } else if (marketplaceType != null) {
+            } else if (hasMarketplace) {
                 orders = orderRepository.searchByKeywordAndMarketplace(tenantId, searchTerm, marketplaceType, pageable);
             } else {
                 orders = orderRepository.searchByKeyword(tenantId, searchTerm, pageable);
             }
         } else {
             // 검색어가 없는 경우 (기존 로직)
-            if (hasStatuses && marketplaceType != null) {
+            if (hasStatuses && hasMarketplace) {
                 orders = orderRepository.findByTenantIdAndStatusInAndMarketplaceType(tenantId, statuses, marketplaceType, pageable);
             } else if (hasStatuses) {
                 orders = orderRepository.findByTenantIdAndStatusIn(tenantId, statuses, pageable);
-            } else if (marketplaceType != null) {
+            } else if (hasMarketplace) {
                 orders = orderRepository.findByTenantIdAndMarketplaceType(tenantId, marketplaceType, pageable);
             } else {
                 orders = orderRepository.findByTenantId(tenantId, pageable);

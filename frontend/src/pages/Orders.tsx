@@ -1,11 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { RefreshCw, Search, Loader2, Upload } from "lucide-react";
+import { RefreshCw, Search, Loader2, Upload, Calendar } from "lucide-react";
 import MappingDialog from "@/components/orders/MappingDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format, subDays, subMonths, startOfDay, endOfDay } from "date-fns";
+import { ko } from "date-fns/locale";
 import {
   Select,
   SelectContent,
@@ -202,6 +206,42 @@ export default function Orders() {
   const [syncingErp, setSyncingErp] = useState(false);
   const [syncingErpOrderId, setSyncingErpOrderId] = useState<string | null>(null);
 
+  // 날짜 필터 상태
+  const [dateRange, setDateRange] = useState<"today" | "1week" | "1month" | "3months" | "custom">("1week");
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 7));
+  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [endDateOpen, setEndDateOpen] = useState(false);
+
+  // 날짜 범위 선택 핸들러
+  const handleDateRangeChange = (range: "today" | "1week" | "1month" | "3months") => {
+    const now = new Date();
+    let start: Date;
+    switch (range) {
+      case "today":
+        start = startOfDay(now);
+        break;
+      case "1week":
+        start = subDays(now, 7);
+        break;
+      case "1month":
+        start = subMonths(now, 1);
+        break;
+      case "3months":
+        start = subMonths(now, 3);
+        break;
+    }
+    setStartDate(start);
+    setEndDate(endOfDay(now));
+    setDateRange(range);
+    setPage(0);
+  };
+
+  // 날짜를 API 형식으로 변환 (YYYY-MM-DD)
+  const formatDateForApi = (date: Date): string => {
+    return format(date, "yyyy-MM-dd");
+  };
+
   // 등록된 마켓플레이스 목록 조회
   useEffect(() => {
     const fetchMarketplaces = async () => {
@@ -227,6 +267,9 @@ export default function Orders() {
       if (statusFilter) params.status = statusFilter;
       if (marketplaceFilter) params.marketplace = marketplaceFilter;
       if (search) params.search = search;
+      // 날짜 필터 추가
+      params.startDate = formatDateForApi(startDate);
+      params.endDate = formatDateForApi(endDate);
       const { data } = await api.get<{ data: PageResponse<Order> }>("/api/v1/orders", { params });
       setOrders(data.data?.content ?? []);
       setTotal(data.data?.totalElements ?? 0);
@@ -235,7 +278,7 @@ export default function Orders() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, marketplaceFilter, search]);
+  }, [page, statusFilter, marketplaceFilter, search, startDate, endDate]);
 
   useEffect(() => {
     fetchOrders();
@@ -328,6 +371,94 @@ export default function Orders() {
       </div>
       <Card>
         <CardContent className="pt-6">
+          {/* 날짜 필터 */}
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <span className="text-sm text-muted-foreground">조회기간</span>
+            <div className="flex items-center gap-1 border rounded-md p-1">
+              <Button
+                variant={dateRange === "today" ? "default" : "ghost"}
+                size="sm"
+                className="h-7 px-3"
+                onClick={() => handleDateRangeChange("today")}
+              >
+                오늘
+              </Button>
+              <Button
+                variant={dateRange === "1week" ? "default" : "ghost"}
+                size="sm"
+                className="h-7 px-3"
+                onClick={() => handleDateRangeChange("1week")}
+              >
+                1주일
+              </Button>
+              <Button
+                variant={dateRange === "1month" ? "default" : "ghost"}
+                size="sm"
+                className="h-7 px-3"
+                onClick={() => handleDateRangeChange("1month")}
+              >
+                1개월
+              </Button>
+              <Button
+                variant={dateRange === "3months" ? "default" : "ghost"}
+                size="sm"
+                className="h-7 px-3"
+                onClick={() => handleDateRangeChange("3months")}
+              >
+                3개월
+              </Button>
+            </div>
+            <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 w-[130px] justify-start text-left font-normal">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {format(startDate, "yyyy.MM.dd")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      setStartDate(date);
+                      setDateRange("custom");
+                      setPage(0);
+                    }
+                    setStartDateOpen(false);
+                  }}
+                  locale={ko}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <span className="text-muted-foreground">~</span>
+            <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 w-[130px] justify-start text-left font-normal">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {format(endDate, "yyyy.MM.dd")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={endDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      setEndDate(endOfDay(date));
+                      setDateRange("custom");
+                      setPage(0);
+                    }
+                    setEndDateOpen(false);
+                  }}
+                  locale={ko}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          {/* 마켓/상태/검색 필터 */}
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <Select
               value={marketplaceFilter}

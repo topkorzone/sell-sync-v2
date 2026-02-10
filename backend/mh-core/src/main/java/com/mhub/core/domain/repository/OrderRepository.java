@@ -73,6 +73,121 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             @Param("statuses") List<OrderStatus> statuses,
             @Param("marketplaceType") MarketplaceType marketplaceType,
             Pageable pageable);
+
+    // ===================== 날짜 범위 검색 쿼리 =====================
+
+    /**
+     * 날짜 범위만
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.orderedAt >= :startDate AND o.orderedAt <= :endDate")
+    Page<Order> findByDateRange(
+            @Param("tenantId") UUID tenantId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable);
+
+    /**
+     * 날짜 범위 + 상태
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.orderedAt >= :startDate AND o.orderedAt <= :endDate " +
+           "AND o.status IN :statuses")
+    Page<Order> findByDateRangeAndStatuses(
+            @Param("tenantId") UUID tenantId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("statuses") List<OrderStatus> statuses,
+            Pageable pageable);
+
+    /**
+     * 날짜 범위 + 마켓플레이스
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.orderedAt >= :startDate AND o.orderedAt <= :endDate " +
+           "AND o.marketplaceType = :marketplaceType")
+    Page<Order> findByDateRangeAndMarketplace(
+            @Param("tenantId") UUID tenantId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("marketplaceType") MarketplaceType marketplaceType,
+            Pageable pageable);
+
+    /**
+     * 날짜 범위 + 상태 + 마켓플레이스
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.orderedAt >= :startDate AND o.orderedAt <= :endDate " +
+           "AND o.status IN :statuses " +
+           "AND o.marketplaceType = :marketplaceType")
+    Page<Order> findByDateRangeAndStatusesAndMarketplace(
+            @Param("tenantId") UUID tenantId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("statuses") List<OrderStatus> statuses,
+            @Param("marketplaceType") MarketplaceType marketplaceType,
+            Pageable pageable);
+
+    /**
+     * 날짜 범위 + 검색어
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.orderedAt >= :startDate AND o.orderedAt <= :endDate " +
+           "AND (o.marketplaceOrderId LIKE CONCAT('%', :search, '%') OR o.receiverName LIKE CONCAT('%', :search, '%'))")
+    Page<Order> findByDateRangeAndKeyword(
+            @Param("tenantId") UUID tenantId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("search") String search,
+            Pageable pageable);
+
+    /**
+     * 날짜 범위 + 검색어 + 상태
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.orderedAt >= :startDate AND o.orderedAt <= :endDate " +
+           "AND o.status IN :statuses " +
+           "AND (o.marketplaceOrderId LIKE CONCAT('%', :search, '%') OR o.receiverName LIKE CONCAT('%', :search, '%'))")
+    Page<Order> findByDateRangeAndKeywordAndStatuses(
+            @Param("tenantId") UUID tenantId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("search") String search,
+            @Param("statuses") List<OrderStatus> statuses,
+            Pageable pageable);
+
+    /**
+     * 날짜 범위 + 검색어 + 마켓플레이스
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.orderedAt >= :startDate AND o.orderedAt <= :endDate " +
+           "AND o.marketplaceType = :marketplaceType " +
+           "AND (o.marketplaceOrderId LIKE CONCAT('%', :search, '%') OR o.receiverName LIKE CONCAT('%', :search, '%'))")
+    Page<Order> findByDateRangeAndKeywordAndMarketplace(
+            @Param("tenantId") UUID tenantId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("search") String search,
+            @Param("marketplaceType") MarketplaceType marketplaceType,
+            Pageable pageable);
+
+    /**
+     * 날짜 범위 + 검색어 + 상태 + 마켓플레이스
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId " +
+           "AND o.orderedAt >= :startDate AND o.orderedAt <= :endDate " +
+           "AND o.status IN :statuses " +
+           "AND o.marketplaceType = :marketplaceType " +
+           "AND (o.marketplaceOrderId LIKE CONCAT('%', :search, '%') OR o.receiverName LIKE CONCAT('%', :search, '%'))")
+    Page<Order> findByDateRangeAndKeywordAndStatusesAndMarketplace(
+            @Param("tenantId") UUID tenantId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("search") String search,
+            @Param("statuses") List<OrderStatus> statuses,
+            @Param("marketplaceType") MarketplaceType marketplaceType,
+            Pageable pageable);
+
     Optional<Order> findByTenantIdAndMarketplaceTypeAndMarketplaceOrderIdAndMarketplaceProductOrderId(UUID tenantId, MarketplaceType marketplaceType, String marketplaceOrderId, String marketplaceProductOrderId);
     @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId AND o.erpSynced = false")
     long countUnsynced(@Param("tenantId") UUID tenantId);
