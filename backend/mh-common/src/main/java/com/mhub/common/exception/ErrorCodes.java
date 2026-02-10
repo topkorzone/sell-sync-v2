@@ -12,6 +12,8 @@ public final class ErrorCodes {
     public static final String AUTH_INVALID_CREDENTIALS = "AUTH_004";
     public static final String AUTH_REFRESH_FAILED = "AUTH_005";
     public static final String AUTH_TENANT_MISSING = "AUTH_006";
+    public static final String AUTH_EMAIL_ALREADY_EXISTS = "AUTH_007";
+    public static final String AUTH_SIGNUP_FAILED = "AUTH_008";
 
     // Tenant
     public static final String TENANT_NOT_FOUND = "TENANT_001";

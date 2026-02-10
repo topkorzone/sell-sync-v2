@@ -6,6 +6,8 @@ import com.mhub.core.security.dto.AuthResponse;
 import com.mhub.core.security.dto.AuthUser;
 import com.mhub.core.security.dto.LoginRequest;
 import com.mhub.core.security.dto.RefreshRequest;
+import com.mhub.core.security.dto.SignupRequest;
+import com.mhub.core.security.dto.SignupResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +25,13 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+
+    @Operation(summary = "Signup")
+    @PostMapping("/signup")
+    public ApiResponse<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
+        SignupResponse response = authService.signup(request);
+        return ApiResponse.ok(response);
+    }
 
     @Operation(summary = "Login")
     @PostMapping("/login")

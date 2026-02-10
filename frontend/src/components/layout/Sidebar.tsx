@@ -10,9 +10,10 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/Logo";
 
 const menuItems = [
-  { path: "/", icon: LayoutDashboard, label: "대시보드" },
+  { path: "/dashboard", icon: LayoutDashboard, label: "대시보드" },
   { path: "/orders", icon: ShoppingCart, label: "주문 관리" },
   { path: "/product-mappings", icon: Link2, label: "상품 매핑" },
   // { path: "/coupang-products", icon: Package, label: "쿠팡 상품" }, // 숨김 처리
@@ -27,16 +28,13 @@ export default function Sidebar() {
   const navigate = useNavigate();
 
   const isActive = (path: string) => {
-    if (path === "/") return location.pathname === "/";
-    return location.pathname.startsWith(path);
+    return location.pathname === path || location.pathname.startsWith(path + "/");
   };
 
   return (
     <aside className="flex h-screen w-56 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="flex h-16 items-center justify-center border-b border-sidebar-border">
-        <h2 className="text-lg font-semibold text-sidebar-foreground">
-          MarketHub
-        </h2>
+        <Logo size="sm" className="text-sidebar-foreground" />
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {menuItems.map((item) => (

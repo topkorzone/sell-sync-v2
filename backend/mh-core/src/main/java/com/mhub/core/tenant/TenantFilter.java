@@ -29,7 +29,7 @@ public class TenantFilter implements Filter {
                 if (appMetadata != null && appMetadata.get("tenant_id") != null) {
                     try {
                         TenantContext.setTenantId(UUID.fromString(appMetadata.get("tenant_id").toString()));
-                        log.debug("Tenant context set: tenantId={}, sub={}", appMetadata.get("tenant_id"), jwt.getSubject());
+                        log.info("Tenant context set: tenantId={}, email={}", appMetadata.get("tenant_id"), jwt.getClaimAsString("email"));
                     } catch (IllegalArgumentException e) {
                         log.error("Invalid tenant_id format in JWT app_metadata: value='{}', sub={}",
                                 appMetadata.get("tenant_id"), jwt.getSubject());

@@ -6,8 +6,10 @@ import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { Loader2 } from "lucide-react";
 
+import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
 import Orders from "@/pages/Orders";
 import ProductMappings from "@/pages/ProductMappings";
 import CoupangProducts from "@/pages/CoupangProducts";
@@ -69,9 +71,11 @@ export default function App() {
   return (
     <>
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route element={<ProtectedLayout />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/product-mappings" element={<ProductMappings />} />
           <Route path="/coupang-products" element={<CoupangProducts />} />

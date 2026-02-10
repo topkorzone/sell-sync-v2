@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-const PUBLIC_PATHS = ['/auth/login', '/auth/refresh'];
+const PUBLIC_PATHS = ['/auth/login', '/auth/refresh', '/auth/signup'];
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {

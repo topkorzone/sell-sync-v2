@@ -1,5 +1,6 @@
 import api from './api';
 import { getAccessToken, setTokens, clearTokens } from './token';
+import type { SignupRequest, SignupResponse } from '@/types/auth';
 
 const DEV_MOCK = import.meta.env.DEV && import.meta.env.VITE_MOCK_AUTH === 'true';
 
@@ -9,6 +10,11 @@ const MOCK_USER = {
   role: 'admin',
   tenantId: '00000000-0000-0000-0000-000000000000',
 };
+
+export async function signUp(request: SignupRequest): Promise<SignupResponse> {
+  const { data } = await api.post('/api/v1/auth/signup', request);
+  return data.data;
+}
 
 export async function signIn(email: string, password: string) {
   if (DEV_MOCK) {

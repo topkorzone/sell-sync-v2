@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Mail, Lock, Loader2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/Logo";
 import { signIn } from "@/lib/auth";
 
 export default function Login() {
@@ -22,7 +23,7 @@ export default function Login() {
     try {
       await signIn(email, password);
       toast.success("로그인 성공");
-      navigate("/");
+      navigate("/dashboard");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "로그인에 실패했습니다.";
@@ -36,7 +37,9 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-muted/50">
       <Card className="w-full max-w-[400px] shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">MarketHub</CardTitle>
+          <div className="flex justify-center mb-2">
+            <Logo size="lg" />
+          </div>
           <CardDescription>오픈마켓 통합 관리 시스템</CardDescription>
         </CardHeader>
         <CardContent>
@@ -75,6 +78,13 @@ export default function Login() {
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               로그인
             </Button>
+
+            <p className="text-center text-sm text-muted-foreground">
+              계정이 없으신가요?{" "}
+              <Link to="/signup" className="text-primary hover:underline">
+                회원가입
+              </Link>
+            </p>
           </form>
         </CardContent>
       </Card>
