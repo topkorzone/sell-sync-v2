@@ -407,7 +407,6 @@ export default function Orders() {
                     <TableHead className="w-[90px]">마켓</TableHead>
                     {/* 상품 레벨 컬럼 */}
                     <TableHead>상품명</TableHead>
-                    <TableHead className="w-[120px]">옵션</TableHead>
                     <TableHead className="w-[50px] text-right">수량</TableHead>
                     <TableHead className="w-[80px] text-right">단가</TableHead>
                     <TableHead className="w-[90px] text-right">금액</TableHead>
@@ -456,15 +455,18 @@ export default function Orders() {
                             ? marketplaceLabels[order.marketplaceType] || order.marketplaceType
                             : ""}
                         </TableCell>
-                        {/* 상품명 - 모든 행 표시 */}
+                        {/* 상품명 + 옵션 - 모든 행 표시 */}
                         <TableCell className="max-w-0">
-                          <span className="truncate block text-sm" title={item.productName}>
-                            {item.productName}
-                          </span>
-                        </TableCell>
-                        {/* 옵션 - 모든 행 표시 */}
-                        <TableCell className="text-sm text-muted-foreground truncate max-w-[120px]" title={item.optionName || ""}>
-                          {item.optionName || "-"}
+                          <div className="min-w-0">
+                            <span className="truncate block text-sm" title={item.productName}>
+                              {item.productName}
+                            </span>
+                            {item.optionName && (
+                              <span className="truncate block text-xs text-muted-foreground" title={item.optionName}>
+                                옵션: {item.optionName}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         {/* 수량 - 모든 행 표시 */}
                         <TableCell className="text-right text-sm">

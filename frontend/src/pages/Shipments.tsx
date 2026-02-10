@@ -491,7 +491,6 @@ export default function Shipments() {
                     <TableHead className="w-[150px]">주문번호</TableHead>
                     <TableHead className="w-[90px]">마켓</TableHead>
                     <TableHead>상품명</TableHead>
-                    <TableHead className="w-[120px]">옵션</TableHead>
                     <TableHead className="w-[50px] text-right">수량</TableHead>
                     <TableHead className="w-[80px]">수취인</TableHead>
                     <TableHead className="w-[120px]">연락처</TableHead>
@@ -543,15 +542,16 @@ export default function Shipments() {
                             : ""}
                         </TableCell>
                         <TableCell className="max-w-0">
-                          <span className="truncate block text-sm" title={item.productName}>
-                            {item.productName}
-                          </span>
-                        </TableCell>
-                        <TableCell
-                          className="text-sm text-muted-foreground truncate max-w-[120px]"
-                          title={item.optionName || ""}
-                        >
-                          {item.optionName || "-"}
+                          <div className="min-w-0">
+                            <span className="truncate block text-sm" title={item.productName}>
+                              {item.productName}
+                            </span>
+                            {item.optionName && (
+                              <span className="truncate block text-xs text-muted-foreground" title={item.optionName}>
+                                옵션: {item.optionName}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right text-sm">
                           {item.quantity || "-"}
