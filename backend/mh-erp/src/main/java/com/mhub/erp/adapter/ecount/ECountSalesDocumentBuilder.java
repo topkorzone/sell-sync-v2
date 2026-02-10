@@ -31,6 +31,7 @@ public class ECountSalesDocumentBuilder {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> buildSaveSaleRequest(Order order, List<OrderSettlement> settlements, ErpSalesTemplate template) {
+        log.info("=== buildSaveSaleRequest called (NEW CODE v2) ===");
         String ioDate = order.getOrderedAt() != null
                 ? order.getOrderedAt().format(DATE_FMT)
                 : DATE_FMT.format(java.time.LocalDate.now());
@@ -89,12 +90,16 @@ public class ECountSalesDocumentBuilder {
             }
             line.put("PROD_CD", prodCd);
 
-            // PROD_DES
-            String prodDes = item.getProductName();
-            if (item.getOptionName() != null && !item.getOptionName().isBlank()) {
-                prodDes = prodDes + " / " + item.getOptionName();
+            // PROD_DES: ERP 코드가 매핑되어 있으면 ERP에서 자동 매핑되므로 비움
+            if (prodCd == null || prodCd.isBlank()) {
+                // 매핑 없으면 마켓플레이스 상품명 사용
+                String prodDes = item.getProductName();
+                if (item.getOptionName() != null && !item.getOptionName().isBlank()) {
+                    prodDes = prodDes + " / " + item.getOptionName();
+                }
+                line.put("PROD_DES", prodDes);
             }
-            line.put("PROD_DES", prodDes);
+            // ERP 코드가 있으면 PROD_DES를 보내지 않음 (ERP에서 자동 매핑)
 
             // QTY
             line.put("QTY", String.valueOf(item.getQuantity()));
@@ -152,12 +157,17 @@ public class ECountSalesDocumentBuilder {
             line.put("QTY", "1");
             VatResult commVat = calculateVat(commissionAmount, getStringField(commTemplate, "vatCalculation", "SUPPLY_DIV_11"));
             applyVatToLine(line, commVat);
-            if (getBoolField(commTemplate, "negateAmount")) negateAmounts(line);
             String remarks = getStringField(commTemplate, "remarks", "");
             if (!remarks.isBlank()) line.put("REMARKS", remarks);
             applyExtraFields(line, commTemplate);
             // 글로벌 필드 매핑 적용 (SALES_COMMISSION 라인)
             applyGlobalFieldMappings(line, globalMappings, "SALES_COMMISSION", order, null, commissionAmount, commVat.supplyAmt, commVat.vatAmt, 1);
+            // 수수료는 항상 마이너스로 처리 (모든 금액 필드 변환 - 글로벌 필드 매핑 이후)
+            log.info("SALES_COMMISSION - before negate: PRICE={}, USER_PRICE_VAT={}, P_AMT1={}",
+                    line.get("PRICE"), line.get("USER_PRICE_VAT"), line.get("P_AMT1"));
+            negateAllAmountFields(line);
+            log.info("SALES_COMMISSION - after negate: PRICE={}, USER_PRICE_VAT={}, P_AMT1={}",
+                    line.get("PRICE"), line.get("USER_PRICE_VAT"), line.get("P_AMT1"));
             lines.add(line);
         }
 
@@ -177,12 +187,17 @@ public class ECountSalesDocumentBuilder {
             line.put("QTY", "1");
             VatResult delCommVat = calculateVat(deliveryCommission, getStringField(delCommTemplate, "vatCalculation", "SUPPLY_DIV_11"));
             applyVatToLine(line, delCommVat);
-            if (getBoolField(delCommTemplate, "negateAmount")) negateAmounts(line);
             String remarks = getStringField(delCommTemplate, "remarks", "");
             if (!remarks.isBlank()) line.put("REMARKS", remarks);
             applyExtraFields(line, delCommTemplate);
             // 글로벌 필드 매핑 적용 (DELIVERY_COMMISSION 라인)
             applyGlobalFieldMappings(line, globalMappings, "DELIVERY_COMMISSION", order, null, deliveryCommission, delCommVat.supplyAmt, delCommVat.vatAmt, 1);
+            // 수수료는 항상 마이너스로 처리 (모든 금액 필드 변환 - 글로벌 필드 매핑 이후)
+            log.info("DELIVERY_COMMISSION - before negate: PRICE={}, USER_PRICE_VAT={}, P_AMT1={}",
+                    line.get("PRICE"), line.get("USER_PRICE_VAT"), line.get("P_AMT1"));
+            negateAllAmountFields(line);
+            log.info("DELIVERY_COMMISSION - after negate: PRICE={}, USER_PRICE_VAT={}, P_AMT1={}",
+                    line.get("PRICE"), line.get("USER_PRICE_VAT"), line.get("P_AMT1"));
             lines.add(line);
         }
 
@@ -486,6 +501,22 @@ public class ECountSalesDocumentBuilder {
         negateField(line, "SUPPLY_AMT");
         negateField(line, "VAT_AMT");
         negateField(line, "PRICE");
+    }
+
+    /**
+     * 모든 금액 관련 필드를 음수로 변환 (글로벌 필드 매핑 이후에 호출)
+     * USER_PRICE_VAT, P_AMT1 등 추가 금액 필드 포함
+     */
+    private void negateAllAmountFields(Map<String, Object> line) {
+        log.info("negateAllAmountFields called - before: USER_PRICE_VAT={}, P_AMT1={}, PRICE={}",
+                line.get("USER_PRICE_VAT"), line.get("P_AMT1"), line.get("PRICE"));
+        negateField(line, "SUPPLY_AMT");
+        negateField(line, "VAT_AMT");
+        negateField(line, "PRICE");
+        negateField(line, "USER_PRICE_VAT");
+        negateField(line, "P_AMT1");
+        log.info("negateAllAmountFields called - after: USER_PRICE_VAT={}, P_AMT1={}, PRICE={}",
+                line.get("USER_PRICE_VAT"), line.get("P_AMT1"), line.get("PRICE"));
     }
 
     private void negateField(Map<String, Object> line, String field) {
