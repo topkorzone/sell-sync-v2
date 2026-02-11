@@ -34,4 +34,16 @@ public class TenantService {
     public TenantMarketplaceCredential getCredential(UUID tenantId, MarketplaceType marketplaceType) {
         return credentialRepository.findByTenantIdAndMarketplaceType(tenantId, marketplaceType).orElseThrow(() -> new BusinessException(ErrorCodes.MARKETPLACE_AUTH_FAILED, "No credential for tenant " + tenantId + " marketplace " + marketplaceType));
     }
+
+    @Transactional
+    public Tenant updateTenant(UUID tenantId, String companyName, String businessNumber,
+                               String contactName, String contactEmail, String contactPhone) {
+        Tenant tenant = getTenant(tenantId);
+        if (companyName != null) tenant.setCompanyName(companyName);
+        if (businessNumber != null) tenant.setBusinessNumber(businessNumber);
+        if (contactName != null) tenant.setContactName(contactName);
+        if (contactEmail != null) tenant.setContactEmail(contactEmail);
+        if (contactPhone != null) tenant.setContactPhone(contactPhone);
+        return tenantRepository.save(tenant);
+    }
 }

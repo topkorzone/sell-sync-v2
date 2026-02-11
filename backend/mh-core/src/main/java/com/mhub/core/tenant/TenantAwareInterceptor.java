@@ -22,11 +22,16 @@ public class TenantAwareInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         UUID tenantId = TenantContext.getTenantId();
         if (tenantId != null) {
-            Session session = entityManager.unwrap(Session.class);
-            session.enableFilter("tenantFilter").setParameter("tenantId", tenantId);
-            entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tenantId, true)")
-                    .setParameter("tenantId", tenantId.toString())
-                    .getSingleResult();
+            try {
+                Session session = entityManager.unwrap(Session.class);
+                session.enableFilter("tenantFilter").setParameter("tenantId", tenantId);
+                entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tenantId, true)")
+                        .setParameter("tenantId", tenantId.toString())
+                        .getSingleResult();
+            } catch (Exception e) {
+                log.error("Failed to set tenant context for tenantId={}: {}", tenantId, e.getMessage(), e);
+                throw e;
+            }
         }
         return true;
     }

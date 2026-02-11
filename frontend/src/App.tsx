@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { getSession } from "@/lib/auth";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { Loader2 } from "lucide-react";
@@ -17,6 +18,7 @@ import Shipments from "@/pages/Shipments";
 import Settlements from "@/pages/Settlements";
 import ErpDocuments from "@/pages/ErpDocuments";
 import Settings from "@/pages/Settings";
+import Profile from "@/pages/Profile";
 
 function ProtectedLayout() {
   const navigate = useNavigate();
@@ -55,15 +57,17 @@ function ProtectedLayout() {
   }
 
   return (
-    <div className="flex h-screen">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
-        </main>
+    <AuthProvider>
+      <div className="flex h-screen">
+        <Sidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-auto p-6">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </AuthProvider>
   );
 }
 
@@ -83,6 +87,7 @@ export default function App() {
           <Route path="/settlements" element={<Settlements />} />
           <Route path="/erp-documents" element={<ErpDocuments />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/profile" element={<Profile />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
