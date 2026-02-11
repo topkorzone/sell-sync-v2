@@ -71,12 +71,13 @@ const marketplaces = [
 
 const pricingPlans = [
   {
-    name: "스타터",
+    name: "Free",
+    orderRange: "월 100건 이하",
     price: "무료",
-    priceDetail: "영원히 무료",
-    description: "소규모 셀러를 위한 기본 플랜",
+    priceDetail: "",
+    description: "서비스 체험용",
     features: [
-      "월 100건 주문 수집",
+      "월 100건까지 주문 처리",
       "마켓플레이스 1개 연동",
       "기본 대시보드",
       "이메일 지원",
@@ -85,30 +86,67 @@ const pricingPlans = [
     popular: false,
   },
   {
-    name: "프로",
+    name: "스타터",
+    orderRange: "월 0 ~ 1,000건",
     price: "49,000",
     priceDetail: "원 / 월",
-    description: "성장하는 셀러를 위한 인기 플랜",
+    description: "소규모 판매자용",
     features: [
-      "월 5,000건 주문 수집",
-      "마켓플레이스 5개 연동",
-      "배송사 연동 (3개)",
+      "월 1,000건까지 주문 처리",
+      "전체 마켓플레이스 연동",
+      "통합 주문 대시보드",
+      "배송사 연동",
+      "이메일 지원",
+    ],
+    cta: "시작하기",
+    popular: false,
+  },
+  {
+    name: "그로스",
+    orderRange: "월 1,001 ~ 5,000건",
+    price: "99,000",
+    priceDetail: "원 / 월",
+    description: "중소 규모 판매자",
+    features: [
+      "월 5,000건까지 주문 처리",
+      "전체 마켓플레이스 연동",
+      "통합 주문 대시보드",
+      "배송사 연동",
       "실시간 알림",
       "우선 기술 지원",
-      "API 접근",
     ],
-    cta: "14일 무료 체험",
+    cta: "시작하기",
     popular: true,
   },
   {
-    name: "엔터프라이즈",
-    price: "99,000",
+    name: "프로",
+    orderRange: "월 5,001 ~ 15,000건",
+    price: "199,000",
     priceDetail: "원 / 월",
-    description: "대규모 비즈니스를 위한 프리미엄 플랜",
+    description: "중대형 판매자",
     features: [
-      "무제한 주문 수집",
+      "월 15,000건까지 주문 처리",
       "전체 마켓플레이스 연동",
-      "전체 배송사 연동",
+      "통합 주문 대시보드",
+      "배송사 연동",
+      "ERP 시스템 연동",
+      "전담 매니저 배정",
+      "API 접근",
+    ],
+    cta: "시작하기",
+    popular: false,
+  },
+  {
+    name: "엔터프라이즈",
+    orderRange: "월 15,001 ~ 30,000건",
+    price: "349,000",
+    priceDetail: "원 / 월",
+    description: "대형 판매자",
+    features: [
+      "월 30,000건까지 주문 처리",
+      "전체 마켓플레이스 연동",
+      "통합 주문 대시보드",
+      "배송사 연동",
       "ERP 시스템 연동",
       "전담 매니저 배정",
       "커스텀 개발 지원",
@@ -365,14 +403,14 @@ export default function Landing() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                비즈니스 규모에 맞는 요금제
+                월 주문 건수에 따른 합리적인 요금제
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                무료로 시작하고, 성장에 따라 업그레이드하세요.
+                비즈니스 규모에 맞게 선택하고, 성장에 따라 업그레이드하세요.
               </p>
             </div>
 
-            <div className="mt-16 grid gap-8 lg:grid-cols-3">
+            <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {pricingPlans.map((plan) => (
                 <Card
                   key={plan.name}
@@ -384,24 +422,27 @@ export default function Landing() {
                 >
                   {plan.popular && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-sm font-medium text-primary-foreground">
-                      가장 인기
+                      추천
                     </div>
                   )}
                   <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                    <CardDescription>{plan.description}</CardDescription>
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <div className="mt-1 rounded-full bg-muted px-3 py-1 text-xs font-medium">
+                      {plan.orderRange}
+                    </div>
+                    <CardDescription className="mt-2">{plan.description}</CardDescription>
                     <div className="mt-4">
-                      <span className="text-4xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground">
+                      <span className="text-3xl font-bold">{plan.price}</span>
+                      <span className="text-sm text-muted-foreground">
                         {plan.priceDetail}
                       </span>
                     </div>
                   </CardHeader>
                   <CardContent className="flex flex-1 flex-col">
-                    <ul className="mb-8 flex-1 space-y-3">
+                    <ul className="mb-6 flex-1 space-y-2">
                       {plan.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-3">
-                          <Check className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                        <li key={feature} className="flex items-start gap-2">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                           <span className="text-sm">{feature}</span>
                         </li>
                       ))}
