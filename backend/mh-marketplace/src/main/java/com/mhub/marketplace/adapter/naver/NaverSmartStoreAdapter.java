@@ -215,10 +215,13 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
             JsonNode shippingAddress = productOrderNode.path("shippingAddress");
             String receiverName = shippingAddress.path("name").asText(null);
             String receiverPhone = shippingAddress.path("tel1").asText(null);
-            String baseAddress = shippingAddress.path("baseAddress").asText("");
-            String detailedAddress = shippingAddress.path("detailedAddress").asText("");
-            String receiverAddress = (baseAddress + " " + detailedAddress).trim();
+            String receiverAddressBase = shippingAddress.path("baseAddress").asText("");
+            String receiverAddressDetail = shippingAddress.path("detailedAddress").asText("");
+            String receiverAddress = (receiverAddressBase + " " + receiverAddressDetail).trim();
             String receiverZipcode = shippingAddress.path("zipCode").asText(null);
+
+            // 배송메모 (배송요청사항)
+            String deliveryMemo = productOrderNode.path("deliveryMemoContent").asText(null);
 
             // 금액 정보
             BigDecimal totalAmount = BigDecimal.valueOf(productOrderNode.path("totalPaymentAmount").asLong(0));
@@ -266,7 +269,10 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
                     .receiverName(receiverName)
                     .receiverPhone(receiverPhone)
                     .receiverAddress(receiverAddress)
+                    .receiverAddressBase(receiverAddressBase)
+                    .receiverAddressDetail(receiverAddressDetail)
                     .receiverZipcode(receiverZipcode)
+                    .deliveryMemo(deliveryMemo)
                     .totalAmount(totalAmount)
                     .deliveryFee(deliveryFee)
                     .estimatedDeliveryCommission(estimatedDeliveryCommission)

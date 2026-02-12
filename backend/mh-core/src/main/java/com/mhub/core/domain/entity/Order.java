@@ -63,8 +63,17 @@ public class Order extends BaseEntity {
     @Column(name = "receiver_address")
     private String receiverAddress;
 
+    @Column(name = "receiver_address_base")
+    private String receiverAddressBase;
+
+    @Column(name = "receiver_address_detail")
+    private String receiverAddressDetail;
+
     @Column(name = "receiver_zipcode")
     private String receiverZipcode;
+
+    @Column(name = "delivery_memo", length = 500)
+    private String deliveryMemo;
 
     @Column(name = "total_amount", precision = 15, scale = 2)
     private BigDecimal totalAmount;

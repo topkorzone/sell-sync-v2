@@ -257,10 +257,13 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
             JsonNode receiver = shipmentBox.path("receiver");
             String receiverName = receiver.path("name").asText(null);
             String receiverPhone = receiver.path("safeNumber").asText(null);
-            String addr1 = receiver.path("addr1").asText("");
-            String addr2 = receiver.path("addr2").asText("");
-            String receiverAddress = (addr1 + " " + addr2).trim();
+            String receiverAddressBase = receiver.path("addr1").asText("");
+            String receiverAddressDetail = receiver.path("addr2").asText("");
+            String receiverAddress = (receiverAddressBase + " " + receiverAddressDetail).trim();
             String receiverZipcode = receiver.path("postCode").asText(null);
+
+            // 배송메모 (parcelPrintMessage)
+            String deliveryMemo = shipmentBox.path("parcelPrintMessage").asText(null);
 
             // 금액 정보
             BigDecimal shippingPrice = extractPrice(shipmentBox.path("shippingPrice"));
@@ -309,7 +312,10 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
                     .receiverName(receiverName)
                     .receiverPhone(receiverPhone)
                     .receiverAddress(receiverAddress)
+                    .receiverAddressBase(receiverAddressBase)
+                    .receiverAddressDetail(receiverAddressDetail)
                     .receiverZipcode(receiverZipcode)
+                    .deliveryMemo(deliveryMemo)
                     .totalAmount(totalAmount)
                     .deliveryFee(shippingPrice)
                     .estimatedDeliveryCommission(estimatedDeliveryCommission)

@@ -68,17 +68,26 @@ public class ShippingService {
                         i.getUnitPrice().intValue()))
                 .toList();
 
+        // 주소 분리: 기본주소/상세주소 필드 우선 사용, 없으면 기존 receiverAddress 사용
+        String addressBase = order.getReceiverAddressBase();
+        String addressDetail = order.getReceiverAddressDetail();
+        if (addressBase == null || addressBase.isBlank()) {
+            addressBase = order.getReceiverAddress() != null ? order.getReceiverAddress() : "";
+            addressDetail = "";
+        }
+
         CourierAdapter.PickupRequest req = new CourierAdapter.PickupRequest(
                 preAllocatedTracking,
                 order.getMarketplaceOrderId(),
                 order.getReceiverName(),
                 order.getReceiverPhone(),
-                order.getReceiverAddress(),
+                addressBase,
+                addressDetail,
                 order.getReceiverZipcode(),
                 order.getBuyerName(),
                 order.getBuyerPhone(),
                 items,
-                "",
+                order.getDeliveryMemo() != null ? order.getDeliveryMemo() : "",
                 extraOptions);
 
         // CJ인 경우 확장된 예약 결과 사용 (분류코드 포함)

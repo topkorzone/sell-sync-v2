@@ -53,9 +53,11 @@ public class CjCourierAdapter implements CourierAdapter {
             }
 
             // 3. Address Refine (분류코드 조회)
-            // 주소정제 API는 고객ID와 주소를 파라미터로 받음
+            // 주소정제 API는 고객ID와 전체 주소를 파라미터로 받음
+            String fullAddress = (req.receiverAddressBase() + " " +
+                    (req.receiverAddressDetail() != null ? req.receiverAddressDetail() : "")).trim();
             CjAddrRefineResponse addrRefine = cjApiClient.refineAddress(
-                    token, custId, req.receiverAddress());
+                    token, custId, fullAddress);
 
             // 4. RegBook
             CjRegBookRequest regBookReq = buildRegBookRequest(config, req, token, trackingNumber);
@@ -152,8 +154,9 @@ public class CjCourierAdapter implements CourierAdapter {
                 .put("RCVR_CELL_NO2", receiverPhone[1])
                 .put("RCVR_CELL_NO3", receiverPhone[2])
                 .put("RCVR_ZIP_NO", req.receiverZipcode())
-                .put("RCVR_ADDR", req.receiverAddress())
-                .put("RCVR_DETAIL_ADDR", " ")
+                .put("RCVR_ADDR", req.receiverAddressBase() != null ? req.receiverAddressBase() : "")
+                .put("RCVR_DETAIL_ADDR", req.receiverAddressDetail() != null ? req.receiverAddressDetail() : " ")
+                .put("REMARK_1", req.memo() != null ? req.memo() : "")
                 .put("ORDRR_NM", req.buyerName() != null ? req.buyerName() : req.receiverName())
                 .put("ORDRR_TEL_NO1", buyerPhone[0])
                 .put("ORDRR_TEL_NO2", buyerPhone[1])
