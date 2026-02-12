@@ -44,7 +44,7 @@ public class LocalOrderSyncScheduler {
      * 신규 주문이 먼저 수집된 후 상태 업데이트를 수행한다.
      */
     @Scheduled(cron = "0 0 * * * *")
-    @SchedulerLock(name = "localHourlySync", lockAtMostFor = "PT55M", lockAtLeastFor = "PT5M")
+    @SchedulerLock(name = "localOrderSync", lockAtMostFor = "PT55M", lockAtLeastFor = "PT5M")
     public void scheduleHourlySync() {
         log.info("[LOCAL] Starting hourly sync (new orders + status update)");
         executeSyncForAllCredentials(SyncType.NEW_ORDERS);
@@ -53,9 +53,10 @@ public class LocalOrderSyncScheduler {
 
     /**
      * 매시간 30분: 신규 주문 수집만
+     * Lock 이름을 localOrderSync로 통일하여 정각 동기화와 동시 실행 방지
      */
     @Scheduled(cron = "0 30 * * * *")
-    @SchedulerLock(name = "localNewOrderCollection", lockAtMostFor = "PT25M", lockAtLeastFor = "PT2M")
+    @SchedulerLock(name = "localOrderSync", lockAtMostFor = "PT25M", lockAtLeastFor = "PT2M")
     public void scheduleNewOrderCollection() {
         log.info("[LOCAL] Starting new order collection");
         executeSyncForAllCredentials(SyncType.NEW_ORDERS);

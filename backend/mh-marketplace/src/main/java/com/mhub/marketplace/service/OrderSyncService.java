@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -35,10 +37,34 @@ public class OrderSyncService {
     private final ProductMappingService productMappingService;
     private final ApplicationEventPublisher eventPublisher;
 
+    // Credential별 락 - 동일 credential에 대한 동시 주문 수집 방지
+    private final ConcurrentHashMap<UUID, ReentrantLock> credentialLocks = new ConcurrentHashMap<>();
+
+    private ReentrantLock getCredentialLock(UUID credentialId) {
+        return credentialLocks.computeIfAbsent(credentialId, k -> new ReentrantLock());
+    }
+
     @Transactional
     public int syncOrders(TenantMarketplaceCredential credential, LocalDateTime from, LocalDateTime to) {
         UUID tenantId = credential.getTenantId();
         MarketplaceType mkt = credential.getMarketplaceType();
+
+        // Credential별 락 획득 - 동일 credential에 대한 동시 실행 방지
+        ReentrantLock lock = getCredentialLock(credential.getId());
+        if (!lock.tryLock()) {
+            log.info("Sync already in progress for credential={}, skipping", credential.getId());
+            return 0;
+        }
+
+        try {
+            return doSyncOrders(credential, tenantId, mkt, from, to);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private int doSyncOrders(TenantMarketplaceCredential credential, UUID tenantId,
+                             MarketplaceType mkt, LocalDateTime from, LocalDateTime to) {
         if (!rateLimitService.tryAcquire(mkt, tenantId)) {
             log.warn("Rate limited: tenant={} mkt={}", tenantId, mkt);
             return -1;

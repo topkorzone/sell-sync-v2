@@ -1,0 +1,5 @@
+-- Note: orders table is partitioned by created_at, so unique constraint must include created_at
+-- Duplicate prevention is handled at application level via:
+-- 1. Scheduler lock unification (orderSync/localOrderSync)
+-- 2. Credential-level locking in OrderSyncService
+-- This migration is intentionally empty

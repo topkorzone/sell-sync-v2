@@ -34,7 +34,7 @@ public class OrderSyncScheduler {
      * 신규 주문 메시지가 먼저 발행된 후 상태 업데이트 메시지를 발행한다.
      */
     @Scheduled(cron = "0 0 * * * *")
-    @SchedulerLock(name = "hourlySync", lockAtMostFor = "PT55M", lockAtLeastFor = "PT5M")
+    @SchedulerLock(name = "orderSync", lockAtMostFor = "PT55M", lockAtLeastFor = "PT5M")
     public void scheduleHourlySync() {
         log.info("Starting hourly sync scheduling (new orders + status update)");
         publishSyncMessages(SyncType.NEW_ORDERS);
@@ -43,9 +43,10 @@ public class OrderSyncScheduler {
 
     /**
      * 매시간 30분: 신규 주문 수집만
+     * Lock 이름을 orderSync로 통일하여 정각 동기화와 동시 실행 방지
      */
     @Scheduled(cron = "0 30 * * * *")
-    @SchedulerLock(name = "newOrderCollection", lockAtMostFor = "PT25M", lockAtLeastFor = "PT2M")
+    @SchedulerLock(name = "orderSync", lockAtMostFor = "PT25M", lockAtLeastFor = "PT2M")
     public void scheduleNewOrderCollection() {
         log.info("Starting new order collection scheduling");
         publishSyncMessages(SyncType.NEW_ORDERS);

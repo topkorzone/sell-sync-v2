@@ -61,6 +61,7 @@ public class CjCourierAdapter implements CourierAdapter {
 
             // 4. RegBook
             CjRegBookRequest regBookReq = buildRegBookRequest(config, req, token, trackingNumber);
+            log.info("CJ RegBook request parameters: {}", regBookReq.DATA());
             CjApiResponse response = cjApiClient.registerBooking(token, regBookReq);
 
             if (response.isSuccess()) {
@@ -116,7 +117,7 @@ public class CjCourierAdapter implements CourierAdapter {
         String[] receiverPhone = splitPhone(req.receiverPhone());
         String[] buyerPhone = splitPhone(req.buyerPhone());
 
-        String calDvCd = getExtraString(config, "calDvCd", "1");
+        String calDvCd = getExtraString(config, "calDvCd", "01");
         String frtDvCd = getExtraString(config, "frtDvCd", "02");
         String cntrItemCd = getExtraString(config, "cntrItemCd", "01");
         // Per-request boxTypeCd overrides config default
@@ -171,11 +172,8 @@ public class CjCourierAdapter implements CourierAdapter {
                 .put("BOX_QTY", "1")
                 .put("PRT_ST", "01")
                 .put("COD_YN", "N")
-                .put("DLV_DV", "01");
-
-        if (!custMgmtDlcmCd.isBlank()) {
-            builder.put("CUST_MGMT_DLCM_CD", custMgmtDlcmCd);
-        }
+                .put("DLV_DV", "01")
+                .put("CUST_MGMT_DLCM_CD", custMgmtDlcmCd);
 
         // Items
         List<Map<String, Object>> items = new ArrayList<>();
