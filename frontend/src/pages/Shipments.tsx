@@ -656,7 +656,12 @@ export default function Shipments() {
           courierType={courierConfigs[0].courierType}
           senderName={courierConfigs[0].senderName}
           senderPhone={courierConfigs[0].senderPhone}
-          senderAddress={courierConfigs[0].senderAddress}
+          senderAddress={
+            courierConfigs[0].extraConfig?.senderDetailAddress
+              ? `${courierConfigs[0].senderAddress} ${courierConfigs[0].extraConfig.senderDetailAddress}`
+              : courierConfigs[0].senderAddress
+          }
+          boxType={(courierConfigs[0].extraConfig?.boxTypeCd as string) || "02"}
         />
       )}
 

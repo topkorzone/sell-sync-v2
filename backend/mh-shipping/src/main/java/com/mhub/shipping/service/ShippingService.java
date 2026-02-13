@@ -127,6 +127,7 @@ public class ShippingService {
                 .addressAlias(addressAlias)
                 .deliveryBranchName(deliveryBranchName)
                 .deliveryEmployeeNickname(deliveryEmployeeNickname)
+                .deliveryMessage(order.getDeliveryMemo())
                 .build();
         shipmentRepository.save(shipment);
 

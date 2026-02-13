@@ -40,8 +40,10 @@ const BOX_TYPE_OPTIONS = [
   { value: "01", label: "극소" },
   { value: "02", label: "소" },
   { value: "03", label: "중" },
-  { value: "04", label: "대" },
-  { value: "05", label: "특대" },
+  { value: "04", label: "대1" },
+  { value: "05", label: "이형" },
+  { value: "06", label: "취급제한" },
+  { value: "07", label: "대2" },
 ];
 
 interface CourierFormDialogProps {

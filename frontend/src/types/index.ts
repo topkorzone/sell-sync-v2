@@ -59,6 +59,7 @@ export interface Order {
   receiverPhone: string;
   receiverAddress: string;
   receiverZipCode: string;
+  deliveryMemo: string | null;
   totalAmount: number;
   deliveryFee: number;
   expectedSettlementAmount: number | null;

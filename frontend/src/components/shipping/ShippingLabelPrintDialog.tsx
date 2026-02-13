@@ -22,6 +22,7 @@ interface ShippingLabelPrintDialogProps {
   senderName: string;
   senderPhone: string;
   senderAddress: string;
+  boxType?: string;
 }
 
 export default function ShippingLabelPrintDialog({
@@ -33,6 +34,7 @@ export default function ShippingLabelPrintDialog({
   senderName,
   senderPhone,
   senderAddress,
+  boxType = "02",
 }: ShippingLabelPrintDialogProps) {
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -140,6 +142,7 @@ export default function ShippingLabelPrintDialog({
                         senderName={senderName}
                         senderPhone={senderPhone}
                         senderAddress={senderAddress}
+                        boxType={boxType}
                       />
                     ) : (
                       <ShippingLabel
@@ -173,6 +176,7 @@ export default function ShippingLabelPrintDialog({
                       senderName={senderName}
                       senderPhone={senderPhone}
                       senderAddress={senderAddress}
+                      boxType={boxType}
                     />
                   ) : (
                     <ShippingLabel

@@ -12,9 +12,20 @@ interface CjStandardLabelProps {
   isReprint?: boolean;
   reprintCode?: string;
   boxQty?: number;
+  boxType?: string;
   freight?: number;
   freightType?: string;
 }
+
+const BOX_TYPE_LABELS: Record<string, string> = {
+  "01": "극소",
+  "02": "소",
+  "03": "중",
+  "04": "대1",
+  "05": "이형",
+  "06": "취급제한",
+  "07": "대2",
+};
 
 // 마스킹: 두 번째 글자 마스킹 (홍길동 → 홍*동)
 function maskName(name: string): string {
@@ -120,6 +131,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
       isReprint = false,
       reprintCode = "",
       boxQty = 1,
+      boxType = "02",
       freight = 0,
       freightType = "신용",
     },
@@ -138,7 +150,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
           // 분류코드만 바코드에 포함 (subClassificationCode는 텍스트로만 표시)
           const barcodeValue = (shipment as any).classification_code || shipment.classificationCode || "0000";
           JsBarcode(classificationBarcodeRef.current, barcodeValue.toUpperCase(), {
-            format: "CODE128",
+            format: "CODE128A",
             width: 2,
             height: 57, // 15mm ≈ 57px
             displayValue: false,
@@ -207,6 +219,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
           fontFamily: "'Malgun Gothic', 'Noto Sans KR', sans-serif",
           boxSizing: "border-box",
           backgroundColor: "#fff",
+          border: "1px solid #ccc",
           pageBreakAfter: "always",
           position: "relative",
           overflow: "hidden",
@@ -218,8 +231,8 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "2mm",
-            left: "20mm",
+            top: "1mm",
+            left: "18mm",
             fontSize: "12pt",
             fontWeight: "bold",
           }}
@@ -231,9 +244,10 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "2mm",
-            left: "58mm",
+            top: "1mm",
+            left: "55mm",
             fontSize: "8pt",
+            fontWeight: "bold",
           }}
         >
           {formatDate(shipment.receiptDate || shipment.reservedAt)}
@@ -243,7 +257,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "2mm",
+            top: "1mm",
             left: "78mm",
             fontSize: "8pt",
           }}
@@ -272,17 +286,17 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
           style={{
             position: "absolute",
             top: "10mm",
-            left: "8mm",
+            left: "6mm",
             width: "30mm",
             height: "15mm",
             overflow: "hidden",
           }}
         >
-          <svg ref={classificationBarcodeRef} style={{ width: "100%", height: "100%" }} />
+          {/* <svg ref={classificationBarcodeRef} style={{ width: "100%", height: "100%" }} /> */}
+          <svg ref={classificationBarcodeRef} />
         </div>
 
-        {/* 6번: 분류코드 텍스트 (X: 40mm, Y: 10mm) - "4W44-4g" 형식 */}
-        {/* 5번 바코드(8mm + 30mm) + 2mm = 40mm */}
+        {/* 6번: 분류코드 텍스트 - CLSFCD-SUBCLSFCD 형식 */}
         <div
           style={{
             position: "absolute",
@@ -294,13 +308,9 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
             fontFamily: "Arial, sans-serif",
           }}
         >
-          <span style={{ fontSize: "36pt", lineHeight: 1 }}>{classCode.slice(0, 4) || "----"}</span>
-          <span style={{ fontSize: "20pt", lineHeight: 1 }}>
-            -{classCode.slice(4) || "-"}
-          </span>
-          {/* 19번: 권내배송코드 (P1 등) */}
+          <span style={{ fontSize: "36pt", lineHeight: 1 }}>{classCode || "----"}</span>
           {subCode && (
-            <span style={{ fontSize: "30pt", lineHeight: 1, marginLeft: "3mm" }}>{subCode}</span>
+            <span style={{ fontSize: "24pt", lineHeight: 1 }}>-{subCode}</span>
           )}
         </div>
 
@@ -324,8 +334,8 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "23mm",
-            left: "11mm",
+            top: "26mm",
+            left: "8mm",
             fontSize: "10pt",
             fontWeight: "bold",
           }}
@@ -340,8 +350,8 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "28mm",
-            left: "9mm",
+            top: "30.5mm",
+            left: "8mm",
             right: "38mm",
             fontSize: "9pt",
             lineHeight: 1.0,
@@ -359,7 +369,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
           style={{
             position: "absolute",
             top: "32mm",
-            left: "9mm",
+            left: "7mm",
             right: "10mm",
             fontSize: "24pt",
             fontWeight: "bold",
@@ -378,7 +388,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
           style={{
             position: "absolute",
             top: "43mm",
-            left: "9mm",
+            left: "8mm",
             fontSize: "7pt",
             fontWeight: "bold",
           }}
@@ -398,7 +408,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
           {formatPhone(senderPhone)}
         </div>
 
-        {/* 13번: 수량 값 (라벨지에 "수량" 박스 있음) */}
+        {/* 13번: 박스크기 + 수량 (라벨지에 "수량" 박스 있음) */}
         <div
           style={{
             position: "absolute",
@@ -408,7 +418,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
             fontWeight: "bold",
           }}
         >
-          {boxQty}
+          {BOX_TYPE_LABELS[boxType] || boxType} {boxQty}
         </div>
 
         {/* 14번: 운임 값 (라벨지에 "운임" 박스 있음) */}
@@ -442,7 +452,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
           style={{
             position: "absolute",
             top: "47mm",
-            left: "9mm",
+            left: "8mm",
             right: "10mm",
             fontSize: "8pt",
             overflow: "hidden",
@@ -477,8 +487,8 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
                 lineHeight: 1.5,
               }}
             >
-              <span
-                style={{
+              <span 
+                style={{ 
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -500,7 +510,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "78mm",
+            top: "83mm",
             left: "3mm",
             right: "10mm",
             fontSize: "8pt",
@@ -521,7 +531,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            bottom: "2mm",
+            bottom: "0mm",
             left: "3mm",
             fontSize: "18pt",
             fontWeight: "bold",

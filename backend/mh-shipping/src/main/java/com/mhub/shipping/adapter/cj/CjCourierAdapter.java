@@ -124,7 +124,7 @@ public class CjCourierAdapter implements CourierAdapter {
         String boxTypeCd = req.extraOptions() != null && req.extraOptions().containsKey("boxTypeCd")
                 ? req.extraOptions().get("boxTypeCd")
                 : getExtraString(config, "boxTypeCd", "02");
-        String custMgmtDlcmCd = getExtraString(config, "custMgmtDlcmCd", "");
+        String custMgmtDlcmCd = custId;
         String senderDetailAddr = getExtraString(config, "senderDetailAddress", " ");
 
         CjRegBookRequest.Builder builder = CjRegBookRequest.builder()
