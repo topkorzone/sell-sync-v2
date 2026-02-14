@@ -69,4 +69,8 @@ public class Shipment extends BaseEntity {
 
     @Column(name = "delivery_message", length = 500)
     private String deliveryMessage;
+
+    @Column(name = "print_count", nullable = false)
+    @Builder.Default
+    private Integer printCount = 0;
 }

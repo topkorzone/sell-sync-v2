@@ -310,7 +310,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         >
           <span style={{ fontSize: "36pt", lineHeight: 1 }}>{classCode || "----"}</span>
           {subCode && (
-            <span style={{ fontSize: "24pt", lineHeight: 1 }}>-{subCode}</span>
+            <span style={{ fontSize: "24pt", lineHeight: 1, bottom: "6px", position: "relative" }}> - {subCode}</span>
           )}
         </div>
 
@@ -368,8 +368,8 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "32mm",
-            left: "7mm",
+            top: "34mm",
+            left: "8mm",
             right: "10mm",
             fontSize: "24pt",
             fontWeight: "bold",
@@ -387,7 +387,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "43mm",
+            top: "44mm",
             left: "8mm",
             fontSize: "7pt",
             fontWeight: "bold",
@@ -400,7 +400,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "43mm",
+            top: "44mm",
             left: "28mm",
             fontSize: "7pt",
           }}
@@ -569,7 +569,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
             style={{
               fontSize: "9pt",
               fontWeight: "bold",
-              marginTop: "1mm",
+              // marginTop: "2px",
               letterSpacing: "0.5px",
             }}
           >

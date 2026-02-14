@@ -48,15 +48,25 @@ public class ShippingService {
                 .findByTenantIdAndCourierType(tenantId, courierType)
                 .orElseThrow(() -> new BusinessException(ErrorCodes.SHIPPING_COURIER_API_ERROR, "No config for: " + courierType));
 
+        // 기존 shipment가 있는지 확인 (재출력 여부 판단)
+        Shipment existingShipment = shipmentRepository.findByOrderIdAndCourierType(orderId, courierType).orElse(null);
+        int currentPrintCount = existingShipment != null ? existingShipment.getPrintCount() : 0;
+
+        // printCount를 extraOptions에 추가
+        Map<String, String> optionsWithPrintCount = new java.util.HashMap<>(extraOptions != null ? extraOptions : Map.of());
+        optionsWithPrintCount.put("printCount", String.valueOf(currentPrintCount));
+
         // Try to get pre-allocated tracking number from pool
-        String preAllocatedTracking = null;
-        TrackingNumberPool tn = trackingNumberPoolRepository
-                .findFirstAvailable(tenantId, courierType.name()).orElse(null);
-        if (tn != null) {
-            preAllocatedTracking = tn.getTrackingNumber();
-            tn.setUsed(true);
-            tn.setUsedByOrderId(orderId);
-            trackingNumberPoolRepository.save(tn);
+        String preAllocatedTracking = existingShipment != null ? existingShipment.getTrackingNumber() : null;
+        if (preAllocatedTracking == null) {
+            TrackingNumberPool tn = trackingNumberPoolRepository
+                    .findFirstAvailable(tenantId, courierType.name()).orElse(null);
+            if (tn != null) {
+                preAllocatedTracking = tn.getTrackingNumber();
+                tn.setUsed(true);
+                tn.setUsedByOrderId(orderId);
+                trackingNumberPoolRepository.save(tn);
+            }
         }
 
         // Build pickup request with full order info
@@ -88,7 +98,7 @@ public class ShippingService {
                 order.getBuyerPhone(),
                 items,
                 order.getDeliveryMemo() != null ? order.getDeliveryMemo() : "",
-                extraOptions);
+                optionsWithPrintCount);
 
         // CJ인 경우 확장된 예약 결과 사용 (분류코드 포함)
         String finalTracking;
@@ -114,29 +124,52 @@ public class ShippingService {
             finalTracking = result.trackingNumber() != null ? result.trackingNumber() : preAllocatedTracking;
         }
 
-        Shipment shipment = Shipment.builder()
-                .orderId(orderId)
-                .tenantId(tenantId)
-                .courierType(courierType)
-                .trackingNumber(finalTracking)
-                .status(success ? ShipmentStatus.RESERVED : ShipmentStatus.PENDING)
-                .reservedAt(success ? LocalDateTime.now() : null)
-                .receiptDate(LocalDate.now())
-                .classificationCode(classificationCode)
-                .subClassificationCode(subClassificationCode)
-                .addressAlias(addressAlias)
-                .deliveryBranchName(deliveryBranchName)
-                .deliveryEmployeeNickname(deliveryEmployeeNickname)
-                .deliveryMessage(order.getDeliveryMemo())
-                .build();
+        Shipment shipment;
+        if (existingShipment != null) {
+            // 기존 shipment 업데이트 (재출력)
+            shipment = existingShipment;
+            shipment.setTrackingNumber(finalTracking);
+            shipment.setStatus(success ? ShipmentStatus.RESERVED : shipment.getStatus());
+            if (success && shipment.getReservedAt() == null) {
+                shipment.setReservedAt(LocalDateTime.now());
+            }
+            shipment.setClassificationCode(classificationCode);
+            shipment.setSubClassificationCode(subClassificationCode);
+            shipment.setAddressAlias(addressAlias);
+            shipment.setDeliveryBranchName(deliveryBranchName);
+            shipment.setDeliveryEmployeeNickname(deliveryEmployeeNickname);
+            shipment.setDeliveryMessage(order.getDeliveryMemo());
+            if (success) {
+                shipment.setPrintCount(currentPrintCount + 1);
+            }
+        } else {
+            // 새 shipment 생성
+            shipment = Shipment.builder()
+                    .orderId(orderId)
+                    .tenantId(tenantId)
+                    .courierType(courierType)
+                    .trackingNumber(finalTracking)
+                    .status(success ? ShipmentStatus.RESERVED : ShipmentStatus.PENDING)
+                    .reservedAt(success ? LocalDateTime.now() : null)
+                    .receiptDate(LocalDate.now())
+                    .classificationCode(classificationCode)
+                    .subClassificationCode(subClassificationCode)
+                    .addressAlias(addressAlias)
+                    .deliveryBranchName(deliveryBranchName)
+                    .deliveryEmployeeNickname(deliveryEmployeeNickname)
+                    .deliveryMessage(order.getDeliveryMemo())
+                    .printCount(success ? 1 : 0)
+                    .build();
+        }
         shipmentRepository.save(shipment);
 
         if (success) {
             orderService.updateStatus(orderId, OrderStatus.READY_TO_SHIP, "SYSTEM");
         }
 
-        log.info("Shipment created for order {} tracking {} success={} classCode={} branchName={} empNickname={}",
-                orderId, finalTracking, success, classificationCode, deliveryBranchName, deliveryEmployeeNickname);
+        log.info("Shipment {} for order {} tracking {} success={} printCount={} classCode={} branchName={} empNickname={}",
+                existingShipment != null ? "updated" : "created",
+                orderId, finalTracking, success, shipment.getPrintCount(), classificationCode, deliveryBranchName, deliveryEmployeeNickname);
         return shipment;
     }
 

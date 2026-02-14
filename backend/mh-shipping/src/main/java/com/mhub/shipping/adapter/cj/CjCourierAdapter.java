@@ -127,6 +127,13 @@ public class CjCourierAdapter implements CourierAdapter {
         String custMgmtDlcmCd = custId;
         String senderDetailAddr = getExtraString(config, "senderDetailAddress", " ");
 
+        // printCount: 0이면 최초출력(N), 1이상이면 재출력(Y)
+        int printCount = req.extraOptions() != null && req.extraOptions().containsKey("printCount")
+                ? Integer.parseInt(req.extraOptions().get("printCount"))
+                : 0;
+        String reprintYn = printCount == 0 ? "N" : "Y";
+        String ouppur = String.valueOf(printCount + 1);
+
         CjRegBookRequest.Builder builder = CjRegBookRequest.builder()
                 .put("TOKEN_NUM", token)
                 .put("INVC_NO", trackingNumber)
@@ -173,7 +180,9 @@ public class CjCourierAdapter implements CourierAdapter {
                 .put("PRT_ST", "01")
                 .put("COD_YN", "N")
                 .put("DLV_DV", "01")
-                .put("CUST_MGMT_DLCM_CD", custMgmtDlcmCd);
+                .put("CUST_MGMT_DLCM_CD", custMgmtDlcmCd)
+                .put("REPRINTYN", reprintYn)
+                .put("OUPPUR", ouppur);
 
         // Items
         List<Map<String, Object>> items = new ArrayList<>();
