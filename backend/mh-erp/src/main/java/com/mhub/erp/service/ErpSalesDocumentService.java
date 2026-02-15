@@ -79,13 +79,27 @@ public class ErpSalesDocumentService implements ErpDocumentGenerator {
             }
         }
 
-        // 거래처 정보 추출
+        // 거래처 정보 추출 및 전표 라인 총액 계산
         String customerCode = null;
         String customerName = null;
+        BigDecimal totalAmount = BigDecimal.ZERO;
         if (!documentLines.isEmpty()) {
             Map<String, Object> firstLine = documentLines.get(0);
             customerCode = (String) firstLine.get("CUST");
             customerName = (String) firstLine.get("CUST_DES");
+
+            // 전표 라인의 PRICE 합계 계산
+            for (Map<String, Object> line : documentLines) {
+                Object priceObj = line.get("PRICE");
+                if (priceObj != null) {
+                    try {
+                        BigDecimal price = new BigDecimal(priceObj.toString());
+                        totalAmount = totalAmount.add(price);
+                    } catch (NumberFormatException ignored) {
+                        // 숫자가 아닌 경우 무시
+                    }
+                }
+            }
         }
 
         ErpSalesDocument document = ErpSalesDocument.builder()
@@ -97,7 +111,7 @@ public class ErpSalesDocumentService implements ErpDocumentGenerator {
                 .marketplaceType(order.getMarketplaceType())
                 .customerCode(customerCode)
                 .customerName(customerName)
-                .totalAmount(order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO)
+                .totalAmount(totalAmount)
                 .documentLines(documentLines)
                 .build();
 

@@ -893,7 +893,10 @@ export default function ErpDocuments() {
                 <div className="text-right">
                   <span className="text-muted-foreground">총액:</span>{" "}
                   <span className="text-lg font-semibold">
-                    {formatCurrency(detailDocument.totalAmount)}원
+                    {formatCurrency(
+                      normalizeDocumentLines(detailDocument.documentLines as unknown[])
+                        .reduce((sum, line) => sum + parseInt(line.PRICE || "0"), 0)
+                    )}원
                   </span>
                 </div>
               </div>

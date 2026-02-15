@@ -100,7 +100,9 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
         log.info("Collecting Naver orders for seller {} from {} to {}", credential.getSellerId(), from, to);
 
         String accessToken = getAccessToken(credential);
-        List<Order> allOrders = new ArrayList<>();
+
+        // orderId 기준으로 주문 그룹화 (같은 주문의 여러 상품을 하나의 Order로 병합)
+        Map<String, Order> orderMap = new LinkedHashMap<>();
 
         // 네이버 API는 최대 24시간 범위만 허용하므로 일별로 순회
         LocalDate startDate = from.toLocalDate();
@@ -158,12 +160,9 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
                     log.info("Naver contents count for date {}: {}", currentDate, contents.size());
 
                     if (contents.isArray() && contents.size() > 0) {
-                        // contents에서 직접 주문 정보 파싱
+                        // contents에서 직접 주문 정보 파싱 (같은 orderId는 병합)
                         for (JsonNode item : contents) {
-                            Order order = parseNaverOrder(item, credential.getTenantId());
-                            if (order != null) {
-                                allOrders.add(order);
-                            }
+                            mergeNaverProductOrder(item, credential.getTenantId(), orderMap);
                         }
 
                         // 다음 페이지 확인
@@ -177,7 +176,7 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
                         hasMore = false;
                     }
 
-                    log.debug("Naver orders collected so far: {}", allOrders.size());
+                    log.debug("Naver orders collected so far: {}", orderMap.size());
 
                 } catch (WebClientResponseException e) {
                     log.error("Naver API error while collecting orders for date {}: {} {}", currentDate, e.getStatusCode(), e.getResponseBodyAsString());
@@ -191,8 +190,106 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
             }
         }
 
+        List<Order> allOrders = new ArrayList<>(orderMap.values());
         log.info("Collected {} Naver orders for seller {} from {} to {}", allOrders.size(), credential.getSellerId(), startDate, endDate);
         return allOrders;
+    }
+
+    /**
+     * 네이버 productOrder를 기존 Order에 병합하거나 새 Order 생성
+     * 같은 orderId를 가진 productOrder들은 하나의 Order로 합쳐짐
+     */
+    private void mergeNaverProductOrder(JsonNode item, UUID tenantId, Map<String, Order> orderMap) {
+        try {
+            JsonNode content = item.path("content");
+            JsonNode orderNode = content.path("order");
+            String orderId = orderNode.path("orderId").asText();
+
+            if (orderId == null || orderId.isEmpty()) {
+                log.warn("Naver productOrder has no orderId, skipping");
+                return;
+            }
+
+            if (orderMap.containsKey(orderId)) {
+                // 기존 Order에 Item만 추가
+                Order existingOrder = orderMap.get(orderId);
+                OrderItem newItem = parseNaverOrderItem(item, tenantId);
+                if (newItem != null) {
+                    existingOrder.addItem(newItem);
+
+                    // 금액 합산
+                    JsonNode productOrderNode = content.path("productOrder");
+                    BigDecimal itemTotalPrice = BigDecimal.valueOf(productOrderNode.path("totalPaymentAmount").asLong(0));
+                    BigDecimal currentTotal = existingOrder.getTotalAmount() != null ? existingOrder.getTotalAmount() : BigDecimal.ZERO;
+                    existingOrder.setTotalAmount(currentTotal.add(itemTotalPrice));
+
+                    // 정산예정금 합산
+                    BigDecimal itemExpectedSettlement = null;
+                    JsonNode expectedNode = productOrderNode.path("expectedSettlementAmount");
+                    if (!expectedNode.isMissingNode() && !expectedNode.isNull()) {
+                        itemExpectedSettlement = BigDecimal.valueOf(expectedNode.asLong(0));
+                    }
+                    if (itemExpectedSettlement != null) {
+                        BigDecimal currentExpected = existingOrder.getExpectedSettlementAmount() != null
+                                ? existingOrder.getExpectedSettlementAmount() : BigDecimal.ZERO;
+                        existingOrder.setExpectedSettlementAmount(currentExpected.add(itemExpectedSettlement));
+                    }
+
+                    log.debug("Merged productOrder into existing order: orderId={}, itemCount={}",
+                            orderId, existingOrder.getItems().size());
+                }
+            } else {
+                // 새 Order 생성
+                Order order = parseNaverOrder(item, tenantId);
+                if (order != null) {
+                    orderMap.put(orderId, order);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to merge Naver productOrder: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 네이버 productOrder에서 OrderItem만 파싱
+     */
+    private OrderItem parseNaverOrderItem(JsonNode item, UUID tenantId) {
+        try {
+            String productOrderId = item.path("productOrderId").asText();
+            JsonNode content = item.path("content");
+            JsonNode productOrderNode = content.path("productOrder");
+
+            String productName = productOrderNode.path("productName").asText("상품명 없음");
+            String optionName = productOrderNode.path("productOption").asText(null);
+            int quantity = productOrderNode.path("quantity").asInt(1);
+            BigDecimal unitPrice = BigDecimal.valueOf(productOrderNode.path("unitPrice").asLong(0));
+            BigDecimal itemTotalPrice = BigDecimal.valueOf(productOrderNode.path("totalProductAmount").asLong(0));
+            String productId = productOrderNode.path("productId").asText(null);
+            String itemNo = productOrderNode.path("itemNo").asText(null);
+
+            // 정산예정금 (상품별)
+            BigDecimal expectedSettlementAmount = null;
+            JsonNode expectedNode = productOrderNode.path("expectedSettlementAmount");
+            if (!expectedNode.isMissingNode() && !expectedNode.isNull()) {
+                expectedSettlementAmount = BigDecimal.valueOf(expectedNode.asLong(0));
+            }
+
+            return OrderItem.builder()
+                    .tenantId(tenantId)
+                    .productName(productName)
+                    .optionName(optionName)
+                    .quantity(quantity)
+                    .unitPrice(unitPrice)
+                    .totalPrice(itemTotalPrice)
+                    .marketplaceProductId(productId)
+                    .marketplaceSku(itemNo)
+                    .expectedSettlementAmount(expectedSettlementAmount)
+                    .build();
+
+        } catch (Exception e) {
+            log.warn("Failed to parse Naver order item: {}", e.getMessage());
+            return null;
+        }
     }
 
     private Order parseNaverOrder(JsonNode item, UUID tenantId) {
