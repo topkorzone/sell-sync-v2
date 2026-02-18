@@ -171,8 +171,7 @@ public class OrderSyncService {
                 OrderStatus.DELIVERED,
                 OrderStatus.PURCHASE_CONFIRMED,
                 OrderStatus.CANCELLED,
-                OrderStatus.RETURNED,
-                OrderStatus.EXCHANGED
+                OrderStatus.RETURNED
         );
 
         // 2. 미완료 주문 조회 (최근 7일)
@@ -260,8 +259,7 @@ public class OrderSyncService {
                 OrderStatus.DELIVERED,
                 OrderStatus.PURCHASE_CONFIRMED,
                 OrderStatus.CANCELLED,
-                OrderStatus.RETURNED,
-                OrderStatus.EXCHANGED
+                OrderStatus.RETURNED
         );
 
         // 2. DB에서 쿠팡 미완료 주문 조회 (최근 7일)
@@ -335,7 +333,7 @@ public class OrderSyncService {
         // 미완료 주문을 shipmentBoxId로 매핑 (이미 정상 흐름에서 업데이트된 주문은 제외)
         List<OrderStatus> finalStatuses = List.of(
                 OrderStatus.DELIVERED, OrderStatus.PURCHASE_CONFIRMED,
-                OrderStatus.CANCELLED, OrderStatus.RETURNED, OrderStatus.EXCHANGED);
+                OrderStatus.CANCELLED, OrderStatus.RETURNED);
 
         Map<String, Order> pendingOrderMap = pendingOrders.stream()
                 .filter(o -> o.getMarketplaceProductOrderId() != null)

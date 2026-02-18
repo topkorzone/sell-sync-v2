@@ -33,7 +33,7 @@ public class DashboardController {
     );
 
     private static final List<OrderStatus> PENDING_STATUSES = List.of(
-            OrderStatus.COLLECTED, OrderStatus.CONFIRMED, OrderStatus.READY_TO_SHIP
+            OrderStatus.PAYMENT_COMPLETE, OrderStatus.PREPARING, OrderStatus.SHIPPING_READY
     );
 
     private static final List<OrderStatus> EXCLUDE_FROM_REVENUE = List.of(
@@ -49,14 +49,13 @@ public class DashboardController {
     );
 
     private static final Map<OrderStatus, String> STATUS_LABELS = Map.of(
-            OrderStatus.COLLECTED, "수집완료",
-            OrderStatus.CONFIRMED, "확인",
-            OrderStatus.READY_TO_SHIP, "발송준비",
+            OrderStatus.PAYMENT_COMPLETE, "결제완료",
+            OrderStatus.PREPARING, "상품준비중",
+            OrderStatus.SHIPPING_READY, "배송지시",
             OrderStatus.SHIPPING, "배송중",
             OrderStatus.DELIVERED, "배송완료",
             OrderStatus.CANCELLED, "취소",
             OrderStatus.RETURNED, "반품",
-            OrderStatus.EXCHANGED, "교환",
             OrderStatus.PURCHASE_CONFIRMED, "구매확정"
     );
 

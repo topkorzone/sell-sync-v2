@@ -6,14 +6,13 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum OrderStatus {
-    COLLECTED("주문수집"),
-    CONFIRMED("주문확인"),
-    READY_TO_SHIP("발송대기"),
+    PAYMENT_COMPLETE("결제완료"),
+    PREPARING("상품준비중"),
+    SHIPPING_READY("배송지시"),
     SHIPPING("배송중"),
     DELIVERED("배송완료"),
     CANCELLED("취소"),
     RETURNED("반품"),
-    EXCHANGED("교환"),
     PURCHASE_CONFIRMED("구매확정");
 
     private final String displayName;

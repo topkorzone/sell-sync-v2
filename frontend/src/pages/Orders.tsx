@@ -66,14 +66,13 @@ const getStatusBadgeClass = (marketplaceStatus?: string): string => {
 
 
 const statusLabels: Record<OrderStatus, string> = {
-  COLLECTED: "수집완료",
-  CONFIRMED: "확인",
-  READY_TO_SHIP: "발송준비",
+  PAYMENT_COMPLETE: "결제완료",
+  PREPARING: "상품준비중",
+  SHIPPING_READY: "배송지시",
   SHIPPING: "배송중",
   DELIVERED: "배송완료",
   CANCELLED: "취소",
   RETURNED: "반품",
-  EXCHANGED: "교환",
   PURCHASE_CONFIRMED: "구매확정",
 };
 

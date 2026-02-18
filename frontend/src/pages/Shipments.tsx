@@ -47,11 +47,11 @@ const getStatusBadgeClass = (status?: OrderStatus): string => {
   if (!status) return "bg-gray-100 text-gray-700 border-gray-200";
 
   switch (status) {
-    case "COLLECTED":
-      return "bg-red-100 text-red-700 border-red-200";  // 신규주문 (결제완료)
-    case "CONFIRMED":
-    case "READY_TO_SHIP":
-      return "bg-green-100 text-green-700 border-green-200";  // 상품준비중/발송대기
+    case "PAYMENT_COMPLETE":
+      return "bg-red-100 text-red-700 border-red-200";  // 결제완료
+    case "PREPARING":
+    case "SHIPPING_READY":
+      return "bg-green-100 text-green-700 border-green-200";  // 상품준비중/배송지시
     case "SHIPPING":
       return "bg-orange-100 text-orange-700 border-orange-200";  // 배송중
     case "DELIVERED":
@@ -60,8 +60,7 @@ const getStatusBadgeClass = (status?: OrderStatus): string => {
       return "bg-emerald-100 text-emerald-700 border-emerald-200";  // 구매확정
     case "CANCELLED":
     case "RETURNED":
-    case "EXCHANGED":
-      return "bg-gray-100 text-gray-500 border-gray-200";  // 취소/반품/교환
+      return "bg-gray-100 text-gray-500 border-gray-200";  // 취소/반품
     default:
       return "bg-gray-100 text-gray-700 border-gray-200";
   }
@@ -69,14 +68,13 @@ const getStatusBadgeClass = (status?: OrderStatus): string => {
 
 // 내부 통합 상태 한글 레이블
 const statusLabels: Record<OrderStatus, string> = {
-  COLLECTED: "결제완료",
-  CONFIRMED: "상품준비중",
-  READY_TO_SHIP: "발송대기",
+  PAYMENT_COMPLETE: "결제완료",
+  PREPARING: "상품준비중",
+  SHIPPING_READY: "배송지시",
   SHIPPING: "배송중",
   DELIVERED: "배송완료",
   CANCELLED: "취소",
   RETURNED: "반품",
-  EXCHANGED: "교환",
   PURCHASE_CONFIRMED: "구매확정",
 };
 
@@ -222,7 +220,7 @@ export default function Shipments() {
       const params: Record<string, string | number | string[]> = {
         page,
         size: 20,
-        statuses: ["CONFIRMED", "READY_TO_SHIP"],
+        statuses: ["PREPARING", "SHIPPING_READY"],
       };
       if (marketplaceFilter) params.marketplace = marketplaceFilter;
       const { data } = await api.get<{ data: PageResponse<Order> }>("/api/v1/orders", {
@@ -324,7 +322,7 @@ export default function Shipments() {
   };
 
   // 선택된 주문 중 택배접수 가능한 주문 수 (송장번호 없는 주문)
-  const selectedBookableCount = orders.filter((o) => selectedOrderIds.has(o.id) && !trackingMap[o.id] && o.status !== "READY_TO_SHIP").length;
+  const selectedBookableCount = orders.filter((o) => selectedOrderIds.has(o.id) && !trackingMap[o.id] && o.status !== "SHIPPING_READY").length;
   // 선택된 주문 중 송장출력 가능한 주문 수 (송장번호 있는 주문)
   const selectedPrintableCount = orders.filter((o) => selectedOrderIds.has(o.id) && !!trackingMap[o.id]).length;
 
@@ -339,7 +337,7 @@ export default function Shipments() {
   const handleBulkBook = async () => {
     // 선택된 주문 중 송장번호가 없는 주문만 접수
     const bookableIds = orders
-      .filter((o) => selectedOrderIds.has(o.id) && !trackingMap[o.id] && o.status !== "READY_TO_SHIP")
+      .filter((o) => selectedOrderIds.has(o.id) && !trackingMap[o.id] && o.status !== "SHIPPING_READY")
       .map((o) => o.id);
 
     if (bookableIds.length === 0) {
@@ -505,7 +503,7 @@ export default function Shipments() {
                   {flattenOrdersToRows(orders).map((row) => {
                     const { order, item, isFirstItemOfOrder, itemsInOrder, orderIndex } = row;
                     const isSelected = selectedOrderIds.has(order.id);
-                    const isBooked = !!trackingMap[order.id] || order.status === "READY_TO_SHIP";
+                    const isBooked = !!trackingMap[order.id] || order.status === "SHIPPING_READY";
                     const rowClassName = `${
                       isFirstItemOfOrder ? "order-row-first" : "order-row-continued"
                     } ${orderIndex % 2 === 0 ? "order-group-even" : "order-group-odd"} ${

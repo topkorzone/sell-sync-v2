@@ -39,16 +39,16 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
 
     /**
      * 네이버 상품주문상태(productOrderStatus) 매핑
-     * - PAYED 상태는 placeOrderStatus에 따라 COLLECTED 또는 CONFIRMED로 구분
+     * - PAYED 상태는 placeOrderStatus에 따라 PAYMENT_COMPLETE 또는 PREPARING으로 구분
      * - 그 외 상태는 직접 매핑
      */
     private static final Map<String, OrderStatus> STATUS_MAPPING = Map.ofEntries(
-            Map.entry("PAYMENT_WAITING", OrderStatus.COLLECTED),
-            Map.entry("PAYED", OrderStatus.COLLECTED),  // 기본값, placeOrderStatus=OK면 CONFIRMED
+            Map.entry("PAYMENT_WAITING", OrderStatus.PAYMENT_COMPLETE),
+            Map.entry("PAYED", OrderStatus.PAYMENT_COMPLETE),  // 기본값, placeOrderStatus=OK면 PREPARING
             Map.entry("DELIVERING", OrderStatus.SHIPPING),
             Map.entry("DELIVERED", OrderStatus.DELIVERED),
             Map.entry("PURCHASE_DECIDED", OrderStatus.PURCHASE_CONFIRMED),
-            Map.entry("EXCHANGED", OrderStatus.EXCHANGED),
+            Map.entry("EXCHANGED", OrderStatus.RETURNED),  // 교환은 반품으로 통합
             Map.entry("CANCELLED", OrderStatus.CANCELLED),
             Map.entry("CANCELED", OrderStatus.CANCELLED),  // 네이버 API 실제 응답값
             Map.entry("RETURNED", OrderStatus.RETURNED)
@@ -56,26 +56,26 @@ public class NaverSmartStoreAdapter extends AbstractMarketplaceAdapter {
 
     /**
      * 네이버 통합 상태 매핑 (productOrderStatus + placeOrderStatus 조합)
-     * - 신규주문: PAYED + NOT_YET → COLLECTED
-     * - 배송준비(발주확인): PAYED + OK → CONFIRMED
+     * - 신규주문: PAYED + NOT_YET → PAYMENT_COMPLETE
+     * - 배송준비(발주확인): PAYED + OK → PREPARING
      * - 배송중: DELIVERING → SHIPPING
      * - 배송완료: DELIVERED → DELIVERED
      * - 구매확정: PURCHASE_DECIDED → PURCHASE_CONFIRMED
      */
     private OrderStatus mapNaverStatus(String productOrderStatus, String placeOrderStatus) {
         if (productOrderStatus == null) {
-            return OrderStatus.COLLECTED;
+            return OrderStatus.PAYMENT_COMPLETE;
         }
 
         // PAYED 상태일 때 발주확인 여부로 세분화
         if ("PAYED".equals(productOrderStatus)) {
             if ("OK".equals(placeOrderStatus)) {
-                return OrderStatus.CONFIRMED;  // 배송준비 (발주확인 완료)
+                return OrderStatus.PREPARING;  // 배송준비 (발주확인 완료)
             }
-            return OrderStatus.COLLECTED;  // 신규주문 (발주확인 전)
+            return OrderStatus.PAYMENT_COMPLETE;  // 신규주문 (발주확인 전)
         }
 
-        return STATUS_MAPPING.getOrDefault(productOrderStatus, OrderStatus.COLLECTED);
+        return STATUS_MAPPING.getOrDefault(productOrderStatus, OrderStatus.PAYMENT_COMPLETE);
     }
 
     private final ObjectMapper objectMapper;

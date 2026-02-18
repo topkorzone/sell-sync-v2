@@ -18,7 +18,7 @@ public abstract class AbstractMarketplaceAdapter implements MarketplaceAdapter {
 
     protected OrderStatus mapStatus(String marketplaceStatus) {
         OrderStatus status = getStatusMapping().get(marketplaceStatus);
-        if (status == null) { log.warn("Unknown {} status: {}", getMarketplaceType(), marketplaceStatus); return OrderStatus.COLLECTED; }
+        if (status == null) { log.warn("Unknown {} status: {}", getMarketplaceType(), marketplaceStatus); return OrderStatus.PAYMENT_COMPLETE; }
         return status;
     }
 

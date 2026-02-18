@@ -70,8 +70,8 @@ public class CoupangAdapter extends AbstractMarketplaceAdapter {
     );
 
     private static final Map<String, OrderStatus> STATUS_MAPPING = Map.ofEntries(
-            Map.entry("ACCEPT", OrderStatus.COLLECTED),
-            Map.entry("INSTRUCT", OrderStatus.CONFIRMED),
+            Map.entry("ACCEPT", OrderStatus.PAYMENT_COMPLETE),
+            Map.entry("INSTRUCT", OrderStatus.PREPARING),
             Map.entry("DEPARTURE", OrderStatus.SHIPPING),
             Map.entry("DELIVERING", OrderStatus.SHIPPING),
             Map.entry("FINAL_DELIVERY", OrderStatus.DELIVERED),

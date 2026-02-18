@@ -164,7 +164,7 @@ public class ShippingService {
         shipmentRepository.save(shipment);
 
         if (success) {
-            orderService.updateStatus(orderId, OrderStatus.READY_TO_SHIP, "SYSTEM");
+            orderService.updateStatus(orderId, OrderStatus.SHIPPING_READY, "SYSTEM");
         }
 
         log.info("Shipment {} for order {} tracking {} success={} printCount={} classCode={} branchName={} empNickname={}",

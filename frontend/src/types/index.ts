@@ -8,14 +8,13 @@ export type MarketplaceType =
   | 'TMON';
 
 export type OrderStatus =
-  | 'COLLECTED'
-  | 'CONFIRMED'
-  | 'READY_TO_SHIP'
+  | 'PAYMENT_COMPLETE'
+  | 'PREPARING'
+  | 'SHIPPING_READY'
   | 'SHIPPING'
   | 'DELIVERED'
   | 'CANCELLED'
   | 'RETURNED'
-  | 'EXCHANGED'
   | 'PURCHASE_CONFIRMED';
 
 export type CourierType = 'CJ' | 'HANJIN' | 'LOGEN' | 'LOTTE' | 'POST';
