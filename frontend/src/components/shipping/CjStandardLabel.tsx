@@ -334,7 +334,7 @@ const CjStandardLabel = forwardRef<HTMLDivElement, CjStandardLabelProps>(
         <div
           style={{
             position: "absolute",
-            top: "25mm",
+            top: "25.5mm",
             left: "8mm",
             fontSize: "10pt",
             fontWeight: "bold",
