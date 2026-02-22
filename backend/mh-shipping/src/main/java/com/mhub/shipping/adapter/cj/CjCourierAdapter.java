@@ -118,7 +118,7 @@ public class CjCourierAdapter implements CourierAdapter {
         String[] buyerPhone = splitPhone(req.buyerPhone());
 
         String calDvCd = getExtraString(config, "calDvCd", "01");
-        String frtDvCd = getExtraString(config, "frtDvCd", "02");
+        String frtDvCd = getExtraString(config, "frtDvCd", "03");
         String cntrItemCd = getExtraString(config, "cntrItemCd", "01");
         // Per-request boxTypeCd overrides config default
         String boxTypeCd = req.extraOptions() != null && req.extraOptions().containsKey("boxTypeCd")
@@ -177,7 +177,7 @@ public class CjCourierAdapter implements CourierAdapter {
                 .put("CNTR_ITEM_CD", cntrItemCd)
                 .put("BOX_TYPE_CD", boxTypeCd)
                 .put("BOX_QTY", "1")
-                .put("PRT_ST", "01")
+                .put("PRT_ST", "02")
                 .put("COD_YN", "N")
                 .put("DLV_DV", "01")
                 .put("CUST_MGMT_DLCM_CD", custMgmtDlcmCd)
